@@ -6,6 +6,9 @@
 /docs/
 # Landing page is maintained locally and is not part of the public repo
 /site/
+# Private developer manual and maintainer rules
+/dev-docs/
+/AGENTS.md
 
 # ---------- Release artifacts ----------
 # The repo ships source; binaries belong in GitHub Releases

@@ -1,4 +1,4 @@
--- Xin Skill Vault — SQLite schema v2
+-- Xin Skill Vault — SQLite schema v4
 -- SKILL.md stays the portable, human-readable metadata inside each skill
 -- directory. This database is the local index, settings and distribution state.
 
