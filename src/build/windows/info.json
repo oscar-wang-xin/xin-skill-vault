@@ -1,0 +1,17 @@
+{
+	"fixed": {
+		"file_version": "0.1.0",
+		"product_version": "0.1.0"
+	},
+	"info": {
+		"0409": {
+			"FileVersion": "0.1.0",
+			"ProductVersion": "0.1.0",
+			"CompanyName": "Xin Skill Vault",
+			"FileDescription": "Agent Skill repository manager",
+			"LegalCopyright": "© 2026 Xin Skill Vault",
+			"ProductName": "Xin Skill Vault",
+			"Comments": "Xin技能管理 · Local-first Agent Skill repository manager"
+		}
+	}
+}

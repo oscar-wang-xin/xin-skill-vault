@@ -1,0 +1,83 @@
+# ---------- Internal / not for public release ----------
+# Working plans, prototypes, spike notes and local screenshots
+/dev-plan.md
+/prototype.html
+/aardio-spike-plan.html
+/docs/
+# Landing page is maintained locally and is not part of the public repo
+/site/
+
+# ---------- Release artifacts ----------
+# The repo ships source; binaries belong in GitHub Releases
+/dist/
+*.exe
+*.msi
+*.msix
+*.appx
+*.zip
+*.7z
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.syso
+*.dll
+*.so
+*.dylib
+
+# ---------- Wails / Go build output ----------
+/src/bin/
+/src/.task/
+/src/.wails/
+/src/wails_windows_amd64.syso
+/src/frontend/dist/
+/src/frontend/bindings/
+/src/frontend/node_modules/
+/src/frontend/.vite/
+/src/frontend/.cache/
+
+# ---------- Local data / user content ----------
+# Never commit a real vault, local index, logs or imported skills
+.skill-vault/
+.vault/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.log
+logs/
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ---------- Secrets / credentials ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+*.keystore
+*credentials*
+*secret*
+!src/frontend/.npmrc
+
+# ---------- Editor / OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.code-workspace
+*.iml
+
+# ---------- Local tooling ----------
+node_modules/
+.opencode/
+*.stackdump

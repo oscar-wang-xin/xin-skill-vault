@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-skin="cold-white">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Xin Skill Vault · Xin技能管理</title>
+    <script>
+      // Resolve the stored skin before first paint to avoid a flash of the
+      // wrong palette. The Go snapshot corrects this once loaded.
+      (function () {
+        try {
+          var stored = localStorage.getItem('xsv-skin') || 'cold-white';
+          if (stored === 'system') {
+            stored = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'paper-dark' : 'paper';
+          }
+          document.documentElement.dataset.skin = stored;
+          var fontScale = localStorage.getItem('xsv-font-scale') || '1.12';
+          document.documentElement.style.setProperty('--font-scale', fontScale);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #e8eef3;
+      }
+      html[data-skin='paper'] body { background: #f3efe6; }
+      html[data-skin='paper-dark'] body { background: #161713; }
+      html[data-skin='cold-gray'] body { background: #e6e8e8; }
+      html[data-skin='mech-yellow'] body { background: #181a17; }
+      #app { height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
