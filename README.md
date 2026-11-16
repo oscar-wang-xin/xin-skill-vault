@@ -86,7 +86,7 @@
 ## 下载
 
 - **项目主页**：<https://app.zhi-wo.com/app/xin-skill-vault/>
-- **GitHub Releases**：<https://github.com/oscar-wang-xin/xin-skill-vault/releases>
+- **GitHub Releases**：<https://github.com/oscar-wang-xin/xin-skill-vault/releases/latest>
 - 构建产物不提交到 Git 仓库；请从 Releases 下载，或按下方说明从源码构建。
 
 | 平台 | 发布文件 | 说明 |
