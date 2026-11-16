@@ -86,17 +86,24 @@
 ## 下载
 
 - **GitHub Releases**：<https://github.com/oscar-wang-xin/xin-skill-vault/releases>
-- 当前发布目标：**Windows 10 / 11 x64**。
 - 构建产物不提交到 Git 仓库；请从 Releases 下载，或按下方说明从源码构建。
 
-> 可执行文件目前未做代码签名。Windows SmartScreen 可能会在首次运行时提示确认。
+| 平台 | 发布文件 | 说明 |
+|---|---|---|
+| Windows 10 / 11 x64 | `XinSkillVault-0.1.0-windows-amd64.zip` | 解压后运行 `XinSkillVault.exe`；需要 WebView2 Runtime |
+| macOS 12+ Universal | `XinSkillVault-0.1.0-macos-universal.zip` | Apple Silicon + Intel；未签名，首次打开需右键「打开」 |
+| Linux x64 | `XinSkillVault-0.1.0-linux-amd64.tar.gz` | 需要 GTK4 + WebKitGTK 6.0 运行库；解压后运行 `XinSkillVault` |
+
+> 当前构建均未做代码签名。Windows SmartScreen 可能提示确认；macOS Gatekeeper 可能阻止首次启动。
+>
+> macOS / Linux 构建使用 Wails v3 的 purego 后端。Linux 运行依赖示例：Ubuntu 24.04 `libgtk-4-1`、`libwebkitgtk-6.0-4`；Fedora `gtk4`、`webkitgtk6.0`。
 
 ## 使用
 
 ### 首次启动
 
-1. 启动 `XinSkillVault.exe`。
-2. 应用会在 `%USERPROFILE%\.skill-vault` 创建中央仓库。
+1. 启动应用：Windows 使用 `XinSkillVault.exe`，macOS 使用 `Xin Skill Vault.app`，Linux 使用 `XinSkillVault`。
+2. 应用会在 `~/.skill-vault`（Windows 为 `%USERPROFILE%\.skill-vault`）创建中央仓库。
 3. 点击「添加技能」：
    - 从本地文件夹导入
    - 扫描现有 Agent 安装
