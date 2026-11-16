@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea043?style=flat-square)](LICENSE)
 [![Local first](https://img.shields.io/badge/local--first-no%20account%20%C2%B7%20no%20telemetry-6e7681?style=flat-square)](#设计原则)
 
-[下载](#下载) · [使用](#使用) · [构建](#从源码构建) · [GitHub](https://github.com/oscar-wang-xin/xin-skill-vault)
+[官网](https://app.zhi-wo.com/app/xin-skill-vault/) · [下载](#下载) · [使用](#使用) · [构建](#从源码构建) · [GitHub](https://github.com/oscar-wang-xin/xin-skill-vault)
 
 ![Xin Skill Vault 技能库](assets/preview-library.png)
 
@@ -85,6 +85,7 @@
 
 ## 下载
 
+- **项目主页**：<https://app.zhi-wo.com/app/xin-skill-vault/>
 - **GitHub Releases**：<https://github.com/oscar-wang-xin/xin-skill-vault/releases>
 - 构建产物不提交到 Git 仓库；请从 Releases 下载，或按下方说明从源码构建。
 
