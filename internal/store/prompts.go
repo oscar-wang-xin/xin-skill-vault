@@ -273,3 +273,18 @@ func mustJSON(value []string) string {
 	data, _ := json.Marshal(value)
 	return string(data)
 }
+
+func (s *Store) ReorderPromptCategories(parentID string, ids []string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	for index, id := range ids {
+		if _, err := tx.Exec(`UPDATE prompt_categories SET sort_order = ? WHERE id = ? AND COALESCE(parent_id, '') = ?`,
+			index, id, parentID); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("reorder prompt category: %w", err)
+		}
+	}
+	return tx.Commit()
+}

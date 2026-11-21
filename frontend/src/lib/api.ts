@@ -466,6 +466,12 @@ export async function importBundleArchive(path: string): Promise<BundleImportRes
   return AppService.ImportBundleArchive(path);
 }
 
+
+export async function reorderPromptCategories(parentID: string, ids: string[]): Promise<void> {
+  if (!(await hasBackend())) throw new Error("分类排序需要桌面应用");
+  await AppService.ReorderPromptCategories(parentID, ids);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

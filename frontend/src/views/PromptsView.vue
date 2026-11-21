@@ -11,6 +11,7 @@ import {
   listPromptCategories,
   listPrompts,
   openPromptFolder,
+  reorderPromptCategories,
   savePrompt,
   updatePromptCategory,
 } from "../lib/api";
@@ -49,6 +50,8 @@ const categoryName = ref("");
 const categoryParent = ref("");
 const categoryDir = ref("");
 const categoryBusy = ref(false);
+const draggingCategory = ref("");
+const dragOverCategory = ref("");
 
 const categoryMap = computed(() => {
   const map = new Map<string, PromptCategoryItem>();
@@ -66,10 +69,62 @@ function categoryDepth(id: string): number {
   return depth;
 }
 
-const categoryRows = computed(() => categories.value.slice().sort((a, b) => {
-  if (a.parentId !== b.parentId) return categoryDepth(a.id) - categoryDepth(b.id) || a.name.localeCompare(b.name);
-  return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
-}));
+const categoryRows = computed(() => {
+  const byParent = new Map<string, PromptCategoryItem[]>();
+  for (const item of categories.value) {
+    const key = item.parentId || "";
+    const list = byParent.get(key) ?? [];
+    list.push(item);
+    byParent.set(key, list);
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  }
+  const out: PromptCategoryItem[] = [];
+  const walk = (parentID: string) => {
+    for (const item of byParent.get(parentID) ?? []) {
+      out.push(item);
+      walk(item.id);
+    }
+  };
+  walk("");
+  return out;
+});
+
+function startCategoryDrag(category: PromptCategoryItem) {
+  draggingCategory.value = category.id;
+}
+
+function overCategory(category: PromptCategoryItem, event: DragEvent) {
+  const source = categories.value.find((item) => item.id === draggingCategory.value);
+  if (!source || source.id === category.id || (source.parentId || "") !== (category.parentId || "")) return;
+  event.preventDefault();
+  dragOverCategory.value = category.id;
+}
+
+async function dropCategory(target: PromptCategoryItem) {
+  const source = categories.value.find((item) => item.id === draggingCategory.value);
+  dragOverCategory.value = "";
+  draggingCategory.value = "";
+  if (!source || source.id === target.id || (source.parentId || "") !== (target.parentId || "")) return;
+  const parentID = source.parentId || "";
+  const siblings = categoryRows.value.filter((item) => (item.parentId || "") === parentID).map((item) => item.id);
+  const ids = siblings.filter((id) => id !== source.id);
+  const targetIndex = ids.indexOf(target.id);
+  ids.splice(targetIndex < 0 ? ids.length : targetIndex, 0, source.id);
+  try {
+    await reorderPromptCategories(parentID, ids);
+    await loadCategories();
+    showToast("分类顺序已更新");
+  } catch (error) {
+    showToast(errorMessage(error));
+  }
+}
+
+function endCategoryDrag() {
+  draggingCategory.value = "";
+  dragOverCategory.value = "";
+}
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
@@ -354,11 +409,18 @@ onMounted(async () => {
           v-for="category in categoryRows"
           :key="category.id"
           class="cat-row"
-          :class="{ active: selectedCategory === category.id }"
+          :class="{ active: selectedCategory === category.id, 'drag-over': dragOverCategory === category.id }"
           :style="{ paddingLeft: `${10 + categoryDepth(category.id) * 14}px` }"
+          draggable="true"
+          title="拖动同级排序；双击重命名"
+          @dragstart="startCategoryDrag(category)"
+          @dragover="overCategory(category, $event)"
+          @drop="dropCategory(category)"
+          @dragend="endCategoryDrag"
           @dblclick="openCategory(category)"
           @click="selectCategory(category.id)"
         >
+          <span class="cat-grip">⋮</span>
           <span v-if="category.parentId" class="cat-branch">└</span>
           <span class="cat-name">{{ category.name }}</span>
           <span class="cat-path mono">{{ category.dirPath }}</span>
@@ -534,6 +596,8 @@ onMounted(async () => {
 .cat-row.active { color: var(--accent); background: var(--accent-soft); }
 .cat-row.all { font-weight: 600; }
 .cat-row.none { color: var(--text-4); }
+.cat-grip { color: var(--text-4); font-size: 8px; opacity: .5; margin-right: -2px; }
+.cat-row.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
 .cat-name { flex: none; }
 .cat-path { flex-basis: 100%; color: var(--text-4); font-size: 8.5px; font-weight: 400; padding-left: 0; opacity: .75; }
 .cat-branch { color: var(--text-4); font-size: 9px; }

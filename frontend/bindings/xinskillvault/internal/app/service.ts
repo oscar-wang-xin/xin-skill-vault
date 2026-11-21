@@ -256,6 +256,10 @@ export function RenameTag(id: string, name: string): $CancellablePromise<void> {
     return $Call.ByID(2096137908, id, name);
 }
 
+export function ReorderPromptCategories(parentID: string, ids: string[] | null): $CancellablePromise<void> {
+    return $Call.ByID(2892682387, parentID, ids);
+}
+
 export function RepairAllDrift(): $CancellablePromise<$models.RepairSummary> {
     return $Call.ByID(1644892785);
 }

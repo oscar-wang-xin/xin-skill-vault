@@ -468,3 +468,24 @@ func newPromptCategoryID() string {
 	}
 	return "pc_" + hex.EncodeToString(buf)
 }
+
+func (s *Service) ReorderPromptCategories(parentID string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	seen := map[string]bool{}
+	for _, id := range ids {
+		if seen[id] {
+			return fmt.Errorf("分类顺序里存在重复项")
+		}
+		seen[id] = true
+		record, err := s.store.FindPromptCategory(id)
+		if err != nil {
+			return err
+		}
+		if record == nil || record.ParentID != parentID {
+			return fmt.Errorf("只能在同一父级下排序")
+		}
+	}
+	return s.store.ReorderPromptCategories(parentID, ids)
+}
