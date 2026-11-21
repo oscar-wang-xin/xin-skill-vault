@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import {
   distributeSkill,
   errorMessage,
   listDistributionTargets,
+  listSkillAssignments,
   uninstallSkill,
 } from "../lib/api";
 import type { DistributionTarget } from "../../bindings/xinskillvault/internal/app/models";
 
-const props = defineProps<{ slug: string; name: string }>();
+const props = defineProps<{ items: { slug: string; name: string }[] }>();
 const emit = defineEmits<{ close: []; changed: [] }>();
 
 const targets = ref<DistributionTarget[]>([]);
+const installedByAgent = ref<Record<string, string[]>>({});
 const selected = ref<string[]>([]);
 const mode = ref<"link" | "copy">("link");
 const loading = ref(true);
@@ -20,13 +22,26 @@ const busy = ref(false);
 const error = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 
+const title = computed(() => props.items.length === 1 ? props.items[0].name : `${props.items.length} 个技能`);
 const detected = computed(() => targets.value.filter((target) => target.detected));
-const installed = computed(() => detected.value.filter((target) => target.installed));
-const available = computed(() => detected.value.filter((target) => !target.installed));
+const available = computed(() => detected.value.filter((target) => !allInstalled(target.id)));
 const selectedCount = computed(() => selected.value.length);
 const allSelected = computed(() => available.value.length > 0 && available.value.every((target) => selected.value.includes(target.id)));
 
+function installedCount(agentID: string): number {
+  return installedByAgent.value[agentID]?.length ?? 0;
+}
+
+function allInstalled(agentID: string): boolean {
+  return installedCount(agentID) >= props.items.length;
+}
+
+function isInstalled(agentID: string, slug: string): boolean {
+  return (installedByAgent.value[agentID] ?? []).includes(slug);
+}
+
 function toggle(id: string) {
+  if (allInstalled(id)) return;
   if (selected.value.includes(id)) selected.value = selected.value.filter((item) => item !== id);
   else selected.value = [...selected.value, id];
 }
@@ -39,7 +54,20 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    targets.value = await listDistributionTargets(props.slug);
+    const [targetList, ...assignmentLists] = await Promise.all([
+      listDistributionTargets(props.items[0].slug),
+      ...props.items.map((item) => listSkillAssignments(item.slug)),
+    ]);
+    targets.value = targetList;
+    const map: Record<string, string[]> = {};
+    assignmentLists.forEach((assignments, index) => {
+      const slug = props.items[index].slug;
+      assignments.forEach((assignment) => {
+        map[assignment.agentId] = [...(map[assignment.agentId] ?? []), slug];
+      });
+    });
+    installedByAgent.value = map;
+    selected.value = selected.value.filter((id) => !allInstalled(id));
   } catch (e) {
     error.value = errorMessage(e);
   } finally {
@@ -54,19 +82,22 @@ async function distribute() {
   const failures: string[] = [];
   let succeeded = 0;
   for (const id of selected.value) {
-    try {
-      await distributeSkill(props.slug, id, mode.value);
-      succeeded++;
-    } catch (e) {
-      const target = targets.value.find((item) => item.id === id);
-      failures.push(`${target?.name ?? id}: ${errorMessage(e)}`);
+    const target = targets.value.find((item) => item.id === id);
+    for (const item of props.items) {
+      if (isInstalled(id, item.slug)) continue;
+      try {
+        await distributeSkill(item.slug, id, mode.value);
+        succeeded++;
+      } catch (e) {
+        failures.push(`${target?.name ?? id} / ${item.name}: ${errorMessage(e)}`);
+      }
     }
   }
   await load();
   selected.value = [];
   busy.value = false;
   if (succeeded > 0) emit("changed");
-  if (failures.length) error.value = failures.join("；");
+  if (failures.length) error.value = failures.slice(0, 4).join("；");
 }
 
 async function remove(target: DistributionTarget) {
@@ -74,7 +105,9 @@ async function remove(target: DistributionTarget) {
   busy.value = true;
   error.value = "";
   try {
-    await uninstallSkill(props.slug, target.id);
+    for (const item of props.items) {
+      if (isInstalled(target.id, item.slug)) await uninstallSkill(item.slug, target.id);
+    }
     await load();
     emit("changed");
   } catch (e) {
@@ -98,7 +131,6 @@ onMounted(() => {
   load();
 });
 onUnmounted(() => window.removeEventListener("keydown", onKeydown));
-nextTick(() => closeButton.value?.focus());
 </script>
 
 <template>
@@ -107,7 +139,7 @@ nextTick(() => closeButton.value?.focus());
       <header class="dist-head">
         <div>
           <h2>分发给 Agent</h2>
-          <p>{{ name }} · 仓库版本会作为唯一来源</p>
+          <p>{{ title }} · 仓库版本会作为唯一来源</p>
         </div>
         <button ref="closeButton" class="icon-btn" title="关闭" @click="close"><Icon name="x" :size="16" /></button>
       </header>
@@ -132,9 +164,14 @@ nextTick(() => closeButton.value?.focus());
 
         <div v-if="!detected.length" class="dist-empty">没有检测到可写的 Agent 目录。请先在 Agent 页查看检测状态。</div>
         <div v-else class="target-list">
-          <div v-for="target in detected" :key="target.id" class="target-row" :class="{ installed: target.installed }">
+          <div
+            v-for="target in detected"
+            :key="target.id"
+            class="target-row"
+            :class="{ installed: installedCount(target.id) > 0 }"
+          >
             <button
-              v-if="!target.installed"
+              v-if="!allInstalled(target.id)"
               class="target-check"
               :class="{ on: selected.includes(target.id) }"
               :aria-label="`选择 ${target.name}`"
@@ -148,20 +185,24 @@ nextTick(() => closeButton.value?.focus());
               <div class="target-name">{{ target.name }}</div>
               <div class="target-path mono">{{ target.path }}</div>
             </div>
-            <span v-if="target.installed" class="badge accent">已分发 · {{ target.installedMode === "link" ? "链接" : "复制" }}</span>
-            <button v-if="target.installed" class="mini-danger" :disabled="busy" @click="remove(target)">移除</button>
+            <span v-if="installedCount(target.id)" class="badge accent">
+              已分发 {{ installedCount(target.id) }}/{{ items.length }}
+            </span>
+            <button v-if="installedCount(target.id)" class="mini-danger" :disabled="busy" @click="remove(target)">
+              移除
+            </button>
           </div>
         </div>
 
-        <div v-if="installed.length" class="dist-foot-note">
-          已分发 {{ installed.length }} 个目标。移除只会删除 Agent 目录中的链接/复制件，不会删除仓库技能。
+        <div v-if="detected.length" class="dist-foot-note">
+          已分发目标会跳过已存在的技能；移除只会删除 Agent 目录中的链接/复制件，不会删除仓库技能。
         </div>
       </div>
 
       <div v-if="error" class="dist-error">{{ error }}</div>
 
       <footer class="dist-foot">
-        <span class="muted">已选 {{ selectedCount }} 个</span>
+        <span class="muted">已选 {{ selectedCount }} 个目标 · {{ items.length }} 个技能</span>
         <div class="grow" />
         <button class="btn" :disabled="busy" @click="close">取消</button>
         <button class="btn primary" :disabled="busy || !selectedCount" @click="distribute">

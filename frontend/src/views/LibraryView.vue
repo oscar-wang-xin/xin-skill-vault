@@ -48,6 +48,7 @@ const savingEdit = ref(false);
 const actionBusy = ref(false);
 const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; message: string; snapshotId?: string }>(null);
 const distributeOpen = ref(false);
+const distributeItems = ref<{ slug: string; name: string }[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 let toastTimer: number | undefined;
@@ -294,6 +295,17 @@ async function restoreSnapshot(snapshot: SnapshotItem) {
 
 function openDistribute() {
   if (!detail.value) return;
+  distributeItems.value = [{ slug: detail.value.slug, name: detail.value.name }];
+  distributeOpen.value = true;
+}
+
+function openBatchDistribute() {
+  const items = skills.value.filter((item) => checked.value.has(item.slug)).map((item) => ({ slug: item.slug, name: item.name }));
+  if (!items.length) {
+    showToast("先勾选要分发的技能");
+    return;
+  }
+  distributeItems.value = items;
   distributeOpen.value = true;
 }
 
@@ -359,6 +371,7 @@ function closeDetail() {
   editing.value = false;
   draft.value = "";
   distributeOpen.value = false;
+  distributeItems.value = [];
   nextTick(() => returnFocus?.focus());
 }
 
@@ -407,8 +420,8 @@ onUnmounted(() => {
             <span class="mono">{{ vault.summary?.vaultPath ?? "~/.skill-repo" }}</span>
           </button>
           <div class="grow" />
-          <button class="btn primary" disabled title="批量分发将在 M2.3 接入">
-            <Icon name="link" :size="13" /> 分发
+          <button class="btn primary" :disabled="checked.size === 0" :title="checked.size === 0 ? '勾选技能后批量分发' : `分发已选 ${checked.size} 个技能`" @click="openBatchDistribute">
+            <Icon name="link" :size="13" /> 分发{{ checked.size ? ` ${checked.size}` : "" }}
           </button>
           <button class="btn" :disabled="importing" title="从本地目录导入包含 SKILL.md 的技能" @click="importSkill">
             <Icon name="upload" :size="14" />
@@ -644,9 +657,8 @@ onUnmounted(() => {
     </aside>
 
     <DistributeModal
-      v-if="distributeOpen && detail"
-      :slug="detail.slug"
-      :name="detail.name"
+      v-if="distributeOpen && distributeItems.length"
+      :items="distributeItems"
       @close="distributeOpen = false"
       @changed="onDistributed"
     />
