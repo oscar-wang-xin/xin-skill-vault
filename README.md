@@ -100,6 +100,22 @@ xin-skill-vault/
 详见 [docs/dev-plan.md](docs/dev-plan.md)、[docs/architecture.md](docs/architecture.md) 与 [docs/review.md](docs/review.md)。
 
 
+## 发布打包（Windows）
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.0
+```
+
+产物：
+
+```text
+bin/release/XinSkillVault-0.1.0-win-x64.zip
+```
+
+zip 内含 exe、README、LICENSE，并输出 SHA256。tag `v*` 会触发 GitHub Actions 构建并上传 Release asset。
+
+> NSIS 安装包依赖本机 `makensis`，未安装时先提供免安装 zip。
+
 ## 开发
 
 ### 环境
