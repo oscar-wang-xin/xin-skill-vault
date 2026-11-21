@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import DiscoverPanel from "./DiscoverPanel.vue";
+import DistributeModal from "./DistributeModal.vue";
 import {
   errorMessage,
   formatBytes,
@@ -46,6 +47,7 @@ const draft = ref("");
 const savingEdit = ref(false);
 const actionBusy = ref(false);
 const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; message: string; snapshotId?: string }>(null);
+const distributeOpen = ref(false);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 let toastTimer: number | undefined;
@@ -71,7 +73,8 @@ const filtered = computed(() => {
   let list = skills.value.filter((item) => {
     if (filter.value === "disabled" && item.enabled) return false;
     if (filter.value === "update") return false;
-    if (filter.value === "distributed" || filter.value === "none") return filter.value === "none";
+    if (filter.value === "distributed" && item.assignedCount === 0) return false;
+    if (filter.value === "none" && item.assignedCount > 0) return false;
     if (!q) return true;
     return item.name.toLowerCase().includes(q)
       || item.slug.toLowerCase().includes(q)
@@ -91,8 +94,8 @@ const filtered = computed(() => {
 
 const filters = computed(() => [
   { id: "all", label: "全部", count: skills.value.length },
-  { id: "distributed", label: "已分发", count: 0 },
-  { id: "none", label: "未分发", count: skills.value.length },
+  { id: "distributed", label: "已分发", count: skills.value.filter((item) => item.assignedCount > 0).length },
+  { id: "none", label: "未分发", count: skills.value.filter((item) => item.assignedCount === 0).length },
   { id: "update", label: "有更新", count: 0 },
   { id: "disabled", label: "已禁用", count: skills.value.filter((item) => !item.enabled).length },
 ]);
@@ -289,6 +292,22 @@ async function restoreSnapshot(snapshot: SnapshotItem) {
   }
 }
 
+function openDistribute() {
+  if (!detail.value) return;
+  distributeOpen.value = true;
+}
+
+async function onDistributed() {
+  await Promise.all([vault.refresh(), loadSkills()]);
+  if (activeSlug.value) {
+    try {
+      detail.value = await getSkillDetail(activeSlug.value);
+    } catch {
+      /* list refresh is enough */
+    }
+  }
+}
+
 function toggleCheck(slug: string) {
   if (checked.value.has(slug)) checked.value.delete(slug);
   else checked.value.add(slug);
@@ -339,6 +358,7 @@ function closeDetail() {
   snapshots.value = [];
   editing.value = false;
   draft.value = "";
+  distributeOpen.value = false;
   nextTick(() => returnFocus?.focus());
 }
 
@@ -353,6 +373,7 @@ async function openSkillDir() {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== "Escape") return;
+  if (distributeOpen.value || confirmAction.value) return;
   if (editing.value) cancelEdit();
   else if (activeSlug.value) closeDetail();
 }
@@ -386,7 +407,7 @@ onUnmounted(() => {
             <span class="mono">{{ vault.summary?.vaultPath ?? "~/.skill-repo" }}</span>
           </button>
           <div class="grow" />
-          <button class="btn primary" disabled title="批量分发将在 M2 接入">
+          <button class="btn primary" disabled title="批量分发将在 M2.3 接入">
             <Icon name="link" :size="13" /> 分发
           </button>
           <button class="btn" :disabled="importing" title="从本地目录导入包含 SKILL.md 的技能" @click="importSkill">
@@ -493,6 +514,7 @@ onUnmounted(() => {
           <p class="sc-desc">{{ item.description }}</p>
           <div class="sc-meta">
             <span class="badge" :class="{ accent: item.enabled }">{{ item.enabled ? "启用" : "禁用" }}</span>
+            <span v-if="item.assignedCount" class="badge">{{ item.assignedCount }} 个分发</span>
             <span class="badge">{{ sourceLabel[item.sourceType] ?? item.sourceType }}</span>
             <span v-if="item.version" class="mono">v{{ item.version }}</span>
             <span class="grow" />
@@ -527,7 +549,7 @@ onUnmounted(() => {
             <span class="skill-glyph sm">{{ item.icon || initials(item.name) }}</span>
             <span><b>{{ item.name }}</b><em>{{ item.description }}</em></span>
           </span>
-          <span class="badge" :class="{ accent: item.enabled }">{{ item.enabled ? "启用" : "禁用" }}</span>
+          <span class="badge" :class="{ accent: item.enabled }">{{ item.enabled ? "启用" : "禁用" }}{{ item.assignedCount ? ` · ${item.assignedCount}` : "" }}</span>
           <span class="badge">{{ sourceLabel[item.sourceType] ?? item.sourceType }}</span>
           <span class="mono">{{ item.version || "—" }}</span>
           <span>{{ item.fileCount }}</span>
@@ -610,6 +632,7 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
+          <button class="btn primary" :disabled="!detail || actionBusy" @click="openDistribute"><Icon name="link" :size="12" /> 分发</button>
           <button class="btn" :disabled="!detail || actionBusy" @click="startEdit"><Icon name="edit" :size="12" /> 编辑</button>
           <button class="btn" :disabled="!detail" @click="openSkillDir"><Icon name="folder" :size="13" /> 打开目录</button>
           <button class="btn" :disabled="!detail || actionBusy" @click="toggleEnabled">{{ detail?.enabled ? "禁用" : "启用" }}</button>
@@ -619,6 +642,14 @@ onUnmounted(() => {
         </template>
       </footer>
     </aside>
+
+    <DistributeModal
+      v-if="distributeOpen && detail"
+      :slug="detail.slug"
+      :name="detail.name"
+      @close="distributeOpen = false"
+      @changed="onDistributed"
+    />
 
     <div v-if="confirmAction" class="confirm-overlay" @click.self.stop>
       <div class="confirm-card">

@@ -24,6 +24,10 @@ export function DeleteSkillSnapshot(slug: string, snapshotID: string): $Cancella
     return $Call.ByID(879356562, slug, snapshotID);
 }
 
+export function DistributeSkill(slug: string, agentID: string, mode: string): $CancellablePromise<$models.SkillAssignment> {
+    return $Call.ByID(210925762, slug, agentID, mode);
+}
+
 export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(3019495029);
 }
@@ -50,6 +54,14 @@ export function ImportSkillArchive(path: string): $CancellablePromise<$models.Sk
 
 export function ImportSkillDirectory(source: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1879938159, source);
+}
+
+export function ListDistributionTargets(slug: string): $CancellablePromise<$models.DistributionTarget[] | null> {
+    return $Call.ByID(3007283258, slug);
+}
+
+export function ListSkillAssignments(slug: string): $CancellablePromise<$models.SkillAssignment[] | null> {
+    return $Call.ByID(1685022983, slug);
 }
 
 export function ListSkillSnapshots(slug: string): $CancellablePromise<$models.SnapshotItem[] | null> {
@@ -123,4 +135,8 @@ export function SetSkillEnabled(slug: string, enabled: boolean): $CancellablePro
  */
 export function Timestamp(): $CancellablePromise<string> {
     return $Call.ByID(3397509674);
+}
+
+export function UninstallSkill(slug: string, agentID: string): $CancellablePromise<void> {
+    return $Call.ByID(1224419401, slug, agentID);
 }

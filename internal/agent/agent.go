@@ -26,33 +26,33 @@ func Defaults() []Adapter {
 	}
 	join := func(parts ...string) string { return filepath.Join(parts...) }
 	adapters := []Adapter{
-		{ID: "claude-code", Name: "Claude Code", Short: "CC", Color: "#D97757", Path: join(home, ".claude", "skills"), ConfigPath: join(home, ".claude"), Mode: "symlink"},
-		{ID: "codex", Name: "Codex CLI", Short: "CX", Color: "#111827", Path: join(home, ".codex", "skills"), ConfigPath: join(home, ".codex"), Mode: "symlink"},
-		{ID: "cursor", Name: "Cursor", Short: "CU", Color: "#2563EB", Path: join(home, ".cursor", "skills"), ConfigPath: join(home, ".cursor"), Mode: "symlink"},
-		{ID: "opencode", Name: "OpenCode", Short: "OC", Color: "#0EA5E9", Path: join(home, ".config", "opencode", "skills"), ConfigPath: join(home, ".config", "opencode"), Mode: "symlink"},
+		{ID: "claude-code", Name: "Claude Code", Short: "CC", Color: "#D97757", Path: join(home, ".claude", "skills"), ConfigPath: join(home, ".claude"), Mode: "link"},
+		{ID: "codex", Name: "Codex CLI", Short: "CX", Color: "#111827", Path: join(home, ".codex", "skills"), ConfigPath: join(home, ".codex"), Mode: "link"},
+		{ID: "cursor", Name: "Cursor", Short: "CU", Color: "#2563EB", Path: join(home, ".cursor", "skills"), ConfigPath: join(home, ".cursor"), Mode: "link"},
+		{ID: "opencode", Name: "OpenCode", Short: "OC", Color: "#0EA5E9", Path: join(home, ".config", "opencode", "skills"), ConfigPath: join(home, ".config", "opencode"), Mode: "link"},
 		{ID: "workbuddy", Name: "WorkBuddy", Short: "WB", Color: "#7C3AED", Path: join(home, ".workbuddy", "skills"), ConfigPath: join(home, ".workbuddy"), Mode: "copy"},
-		{ID: "dsh", Name: "DeepSeek Harness", Short: "DS", Color: "#2563EB", Path: join(home, ".dsh", "skills"), ConfigPath: join(home, ".dsh"), Mode: "symlink"},
-		{ID: "alma", Name: "Alma", Short: "AL", Color: "#0E9F74", Path: join(home, ".config", "alma", "skills"), ConfigPath: join(home, ".config", "alma"), Mode: "symlink"},
-		{ID: "codebuddy", Name: "CodeBuddy", Short: "CB", Color: "#D97706", Path: join(home, ".codebuddy", "skills"), ConfigPath: join(home, ".codebuddy"), Mode: "symlink"},
-		{ID: "reasonix", Name: "Reasonix", Short: "RX", Color: "#64748B", Path: join(home, ".reasonix", "skills"), ConfigPath: join(home, ".reasonix"), Mode: "symlink"},
-		{ID: "agents", Name: "Universal (.agents)", Short: "AG", Color: "#0F766E", Path: join(home, ".agents", "skills"), ConfigPath: join(home, ".agents"), Mode: "symlink"},
+		{ID: "dsh", Name: "DeepSeek Harness", Short: "DS", Color: "#2563EB", Path: join(home, ".dsh", "skills"), ConfigPath: join(home, ".dsh"), Mode: "link"},
+		{ID: "alma", Name: "Alma", Short: "AL", Color: "#0E9F74", Path: join(home, ".config", "alma", "skills"), ConfigPath: join(home, ".config", "alma"), Mode: "link"},
+		{ID: "codebuddy", Name: "CodeBuddy", Short: "CB", Color: "#D97706", Path: join(home, ".codebuddy", "skills"), ConfigPath: join(home, ".codebuddy"), Mode: "link"},
+		{ID: "reasonix", Name: "Reasonix", Short: "RX", Color: "#64748B", Path: join(home, ".reasonix", "skills"), ConfigPath: join(home, ".reasonix"), Mode: "link"},
+		{ID: "agents", Name: "Universal (.agents)", Short: "AG", Color: "#0F766E", Path: join(home, ".agents", "skills"), ConfigPath: join(home, ".agents"), Mode: "link"},
 	}
 	if runtime.GOOS == "windows" {
 		adapters = append(adapters, Adapter{
 			ID: "cherry-studio", Name: "Cherry Studio", Short: "CH", Color: "#E11D48",
-			Path: join(appData, "CherryStudio", "Data", "Skills"), ConfigPath: join(appData, "CherryStudio"), Mode: "symlink",
+			Path: join(appData, "CherryStudio", "Data", "Skills"), ConfigPath: join(appData, "CherryStudio"), Mode: "link",
 		})
 	} else if runtime.GOOS == "darwin" {
 		adapters = append(adapters, Adapter{
 			ID: "cherry-studio", Name: "Cherry Studio", Short: "CH", Color: "#E11D48",
 			Path:       join(home, "Library", "Application Support", "CherryStudio", "Data", "Skills"),
-			ConfigPath: join(home, "Library", "Application Support", "CherryStudio"), Mode: "symlink",
+			ConfigPath: join(home, "Library", "Application Support", "CherryStudio"), Mode: "link",
 		})
 	} else {
 		adapters = append(adapters, Adapter{
 			ID: "cherry-studio", Name: "Cherry Studio", Short: "CH", Color: "#E11D48",
 			Path:       join(home, ".config", "CherryStudio", "Data", "Skills"),
-			ConfigPath: join(home, ".config", "CherryStudio"), Mode: "symlink",
+			ConfigPath: join(home, ".config", "CherryStudio"), Mode: "link",
 		})
 	}
 	for i := range adapters {

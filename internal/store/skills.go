@@ -8,31 +8,33 @@ import (
 )
 
 type SkillRecord struct {
-	ID          string
-	Slug        string
-	Name        string
-	Description string
-	Version     string
-	Author      string
-	License     string
-	Icon        string
-	Path        string
-	ContentHash string
-	SizeBytes   int64
-	FileCount   int
-	Enabled     bool
-	SourceType  string
-	SourceRef   string
-	SourceRev   string
-	SourceURL   string
-	CreatedAt   int64
-	UpdatedAt   int64
-	DeletedAt   *int64
+	ID            string
+	Slug          string
+	Name          string
+	Description   string
+	Version       string
+	Author        string
+	License       string
+	Icon          string
+	Path          string
+	ContentHash   string
+	SizeBytes     int64
+	FileCount     int
+	Enabled       bool
+	AssignedCount int
+	SourceType    string
+	SourceRef     string
+	SourceRev     string
+	SourceURL     string
+	CreatedAt     int64
+	UpdatedAt     int64
+	DeletedAt     *int64
 }
 
 const skillColumns = `id, slug, name, description, version, author, license, icon, path,
 	content_hash, size_bytes, file_count, enabled, source_type, source_ref, source_rev,
-	source_url, created_at, updated_at, deleted_at`
+	source_url, created_at, updated_at, deleted_at,
+	(SELECT COUNT(*) FROM assignments a WHERE a.skill_id = skills.id) AS assigned_count`
 
 func (s *Store) CreateSkill(record SkillRecord) error {
 	_, err := s.db.Exec(`
@@ -96,12 +98,13 @@ func scanSkill(row scanner) (SkillRecord, error) {
 		sourceRef, sourceRev, sourceURL sql.NullString
 		deletedAt                       sql.NullInt64
 		enabled                         int
+		assignedCount                   int
 	)
 	err := row.Scan(
 		&record.ID, &record.Slug, &record.Name, &record.Description, &version, &author,
 		&license, &icon, &record.Path, &record.ContentHash, &record.SizeBytes, &record.FileCount,
 		&enabled, &record.SourceType, &sourceRef, &sourceRev, &sourceURL,
-		&record.CreatedAt, &record.UpdatedAt, &deletedAt,
+		&record.CreatedAt, &record.UpdatedAt, &deletedAt, &assignedCount,
 	)
 	if err != nil {
 		return SkillRecord{}, err
@@ -114,6 +117,7 @@ func scanSkill(row scanner) (SkillRecord, error) {
 	record.SourceRev = sourceRev.String
 	record.SourceURL = sourceURL.String
 	record.Enabled = enabled != 0
+	record.AssignedCount = assignedCount
 	if deletedAt.Valid {
 		value := deletedAt.Int64
 		record.DeletedAt = &value

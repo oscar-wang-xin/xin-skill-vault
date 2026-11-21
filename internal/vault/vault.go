@@ -644,3 +644,8 @@ func (v *Vault) DeleteSnapshot(slug, snapshotID string) error {
 func FingerprintDir(root string) (string, int64, int, error) {
 	return hashTree(root)
 }
+
+// CopyDir copies a skill tree into an empty target, skipping ignored metadata.
+func CopyDir(source, target string) error {
+	return copyTree(source, target)
+}

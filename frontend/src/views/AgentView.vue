@@ -46,7 +46,7 @@ onMounted(refresh);
     <div class="page-head">
       <div>
         <h1>Agent <span class="badge phase">M2</span></h1>
-        <p>{{ detected }} 个目标已检测 · 扫描 {{ result?.scannedSkills ?? 0 }} 个技能 · 双列与分发将在 M2.2 接入</p>
+        <p>{{ detected }} 个目标已检测 · 扫描 {{ result?.scannedSkills ?? 0 }} 个技能 · 分发入口在技能详情抽屉</p>
       </div>
       <div class="actions">
         <button class="btn" :disabled="scanning" @click="refresh">

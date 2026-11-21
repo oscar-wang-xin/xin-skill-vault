@@ -8,7 +8,9 @@ export {
 
 export type {
     AppInfo,
+    DistributionTarget,
     SaveConfigResult,
+    SkillAssignment,
     SkillDetail,
     SkillItem,
     SnapshotItem,

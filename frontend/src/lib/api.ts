@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, SaveConfigResult, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, DistributionTarget, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
@@ -197,6 +197,27 @@ export async function importScannedSkill(agentID: string, source: string): Promi
 export async function openAgentFolder(agentID: string): Promise<void> {
   if (!(await hasBackend())) return;
   await AppService.OpenAgentFolder(agentID);
+}
+
+
+export async function listDistributionTargets(slug: string): Promise<DistributionTarget[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListDistributionTargets(slug)) ?? [];
+}
+
+export async function distributeSkill(slug: string, agentID: string, mode: string): Promise<SkillAssignment> {
+  if (!(await hasBackend())) throw new Error("分发技能需要桌面应用");
+  return AppService.DistributeSkill(slug, agentID, mode);
+}
+
+export async function uninstallSkill(slug: string, agentID: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("移除分发需要桌面应用");
+  await AppService.UninstallSkill(slug, agentID);
+}
+
+export async function listSkillAssignments(slug: string): Promise<SkillAssignment[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListSkillAssignments(slug)) ?? [];
 }
 
 export function formatBytes(bytes: number): string {

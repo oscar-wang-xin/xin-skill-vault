@@ -58,6 +58,9 @@ Wails v3 application
 | `ScanAgents` | 检测 Agent 目录、扫描技能并返回 Finding |
 | `ImportScannedSkill` | 从扫描结果导入单个技能（来源记为 scan） |
 | `OpenAgentFolder` | 打开 Agent skill 目录 |
+| `ListDistributionTargets` | 确保 Agent target 入库，返回检测/已分发状态 |
+| `DistributeSkill` / `UninstallSkill` | 链接（失败降级复制）或复制分发；移除安装 |
+| `ListSkillAssignments` | 技能的分发记录 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -94,8 +97,10 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
 - `internal/agent`：11 个内置 Agent 适配器与目录检测
 - `internal/scan`：单层技能扫描、hash 比对、new/changed Finding、错误收集
+- `internal/distribute`：Agent 目录安装/移除，链接失败自动复制，`.skillrepo-manifest.json`
 - 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
 - 前端发现页 / Agent 页：真实扫描、筛选、导入、目录打开
+- 前端分发弹层：多 Agent 选择、链接/复制模式、移除；详情抽屉入口
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -103,13 +108,13 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 分发（symlink/junction/copy）、manifest、漂移检测
+- M2 junction、批量分发、项目分配、漂移检测
 
 ## 8. 下一步
 
 1. 扫描结果的覆盖更新（先生成快照再替换）。
-2. Agent 分发：symlink / junction / copy 降级、`.skillrepo-manifest.json`。
-3. 分发弹层与项目模块数据。
-4. 漂移检测与批量修复。
+2. junction 与批量分发、按项目分发。
+3. 漂移检测与批量修复。
+4. 市场与提示词。
 
 详细规格见 `docs/dev-plan.md` §4、§16。

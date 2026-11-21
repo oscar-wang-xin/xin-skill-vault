@@ -14,6 +14,7 @@ import (
 
 	"xinskillvault/internal/agent"
 	"xinskillvault/internal/config"
+	"xinskillvault/internal/distribute"
 	"xinskillvault/internal/scan"
 	"xinskillvault/internal/skill"
 	"xinskillvault/internal/store"
@@ -189,22 +190,23 @@ func (s *Service) Timestamp() string {
 }
 
 type SkillItem struct {
-	ID          string   `json:"id"`
-	Slug        string   `json:"slug"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Version     string   `json:"version"`
-	Author      string   `json:"author"`
-	License     string   `json:"license"`
-	Icon        string   `json:"icon"`
-	Path        string   `json:"path"`
-	SizeBytes   int64    `json:"sizeBytes"`
-	FileCount   int      `json:"fileCount"`
-	Enabled     bool     `json:"enabled"`
-	SourceType  string   `json:"sourceType"`
-	ContentHash string   `json:"contentHash"`
-	UpdatedAt   int64    `json:"updatedAt"`
-	Tags        []string `json:"tags"`
+	ID            string   `json:"id"`
+	Slug          string   `json:"slug"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Version       string   `json:"version"`
+	Author        string   `json:"author"`
+	License       string   `json:"license"`
+	Icon          string   `json:"icon"`
+	Path          string   `json:"path"`
+	SizeBytes     int64    `json:"sizeBytes"`
+	FileCount     int      `json:"fileCount"`
+	Enabled       bool     `json:"enabled"`
+	AssignedCount int      `json:"assignedCount"`
+	SourceType    string   `json:"sourceType"`
+	ContentHash   string   `json:"contentHash"`
+	UpdatedAt     int64    `json:"updatedAt"`
+	Tags          []string `json:"tags"`
 }
 
 type SkillDetail struct {
@@ -367,22 +369,23 @@ func (s *Service) OpenSkillFolder(slug string) error {
 
 func skillItem(record store.SkillRecord) SkillItem {
 	return SkillItem{
-		ID:          record.ID,
-		Slug:        record.Slug,
-		Name:        record.Name,
-		Description: record.Description,
-		Version:     record.Version,
-		Author:      record.Author,
-		License:     record.License,
-		Icon:        record.Icon,
-		Path:        record.Path,
-		SizeBytes:   record.SizeBytes,
-		FileCount:   record.FileCount,
-		Enabled:     record.Enabled,
-		SourceType:  record.SourceType,
-		ContentHash: record.ContentHash,
-		UpdatedAt:   record.UpdatedAt,
-		Tags:        []string{},
+		ID:            record.ID,
+		Slug:          record.Slug,
+		Name:          record.Name,
+		Description:   record.Description,
+		Version:       record.Version,
+		Author:        record.Author,
+		License:       record.License,
+		Icon:          record.Icon,
+		Path:          record.Path,
+		SizeBytes:     record.SizeBytes,
+		FileCount:     record.FileCount,
+		Enabled:       record.Enabled,
+		AssignedCount: record.AssignedCount,
+		SourceType:    record.SourceType,
+		ContentHash:   record.ContentHash,
+		UpdatedAt:     record.UpdatedAt,
+		Tags:          []string{},
 	}
 }
 
@@ -482,4 +485,191 @@ func withinPath(root, target string) bool {
 		return false
 	}
 	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
+}
+
+type DistributionTarget struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Short         string `json:"short"`
+	Color         string `json:"color"`
+	Path          string `json:"path"`
+	DefaultMode   string `json:"defaultMode"`
+	Detected      bool   `json:"detected"`
+	Installed     bool   `json:"installed"`
+	InstalledMode string `json:"installedMode"`
+	InstalledPath string `json:"installedPath"`
+}
+
+type SkillAssignment struct {
+	ID            string `json:"id"`
+	AgentID       string `json:"agentId"`
+	TargetName    string `json:"targetName"`
+	Short         string `json:"short"`
+	Color         string `json:"color"`
+	Mode          string `json:"mode"`
+	InstalledPath string `json:"installedPath"`
+	Status        string `json:"status"`
+	UpdatedAt     int64  `json:"updatedAt"`
+}
+
+func (s *Service) ensureTargets() (map[string]store.TargetRecord, error) {
+	out := map[string]store.TargetRecord{}
+	for _, adapter := range agent.Defaults() {
+		record, err := s.store.FindTargetByAgent(adapter.ID)
+		if err != nil {
+			return nil, err
+		}
+		target := store.TargetRecord{
+			ID: "agent:" + adapter.ID, Kind: "agent", AgentID: adapter.ID, Name: adapter.Name,
+			Path: adapter.Path, ConfigPath: adapter.ConfigPath, Platform: runtime.GOOS,
+			Enabled: true, Detected: adapter.Detected, Writable: true,
+			DefaultMode: adapter.Mode, CreatedAt: time.Now().Unix(),
+		}
+		if record != nil {
+			target.ID = record.ID
+			target.CreatedAt = record.CreatedAt
+		}
+		if err := s.store.UpsertTarget(target); err != nil {
+			return nil, err
+		}
+		out[adapter.ID] = target
+	}
+	return out, nil
+}
+
+func (s *Service) ListDistributionTargets(slug string) ([]DistributionTarget, error) {
+	targets, err := s.ensureTargets()
+	if err != nil {
+		return nil, err
+	}
+	var record *store.SkillRecord
+	if slug != "" {
+		record, err = s.store.FindSkillBySlug(slug)
+		if err != nil {
+			return nil, err
+		}
+	}
+	assignments := map[string]store.AssignmentRecord{}
+	if record != nil {
+		list, err := s.store.ListAssignments(record.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, assignment := range list {
+			assignments[assignment.TargetID] = assignment
+		}
+	}
+	adapters := agent.Defaults()
+	out := make([]DistributionTarget, 0, len(adapters))
+	for _, adapter := range adapters {
+		target, ok := targets[adapter.ID]
+		if !ok {
+			continue
+		}
+		item := DistributionTarget{
+			ID: adapter.ID, Name: adapter.Name, Short: adapter.Short, Color: adapter.Color,
+			Path: adapter.Path, DefaultMode: adapter.Mode, Detected: adapter.Detected,
+		}
+		if assignment, ok := assignments[target.ID]; ok {
+			item.Installed = true
+			item.InstalledMode = assignment.Mode
+			item.InstalledPath = assignment.InstalledPath
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+func (s *Service) DistributeSkill(slug, agentID, mode string) (SkillAssignment, error) {
+	targets, err := s.ensureTargets()
+	if err != nil {
+		return SkillAssignment{}, err
+	}
+	target, ok := targets[agentID]
+	if !ok {
+		return SkillAssignment{}, fmt.Errorf("Agent 不存在")
+	}
+	if !target.Detected {
+		return SkillAssignment{}, fmt.Errorf("Agent 目录未检测到，无法分发")
+	}
+	record, err := s.store.FindSkillBySlug(slug)
+	if err != nil {
+		return SkillAssignment{}, err
+	}
+	if record == nil {
+		return SkillAssignment{}, fmt.Errorf("技能不存在：%s", slug)
+	}
+	assignment, err := (&distribute.Distributor{Vault: vault.New(s.config.Current().VaultPath, s.store), Store: s.store}).Install(target, slug, mode)
+	if err != nil {
+		return SkillAssignment{}, err
+	}
+	return s.assignmentDTO(record, target, assignment), nil
+}
+
+func (s *Service) UninstallSkill(slug, agentID string) error {
+	targets, err := s.ensureTargets()
+	if err != nil {
+		return err
+	}
+	target, ok := targets[agentID]
+	if !ok {
+		return fmt.Errorf("Agent 不存在")
+	}
+	record, err := s.store.FindSkillBySlug(slug)
+	if err != nil {
+		return err
+	}
+	if record == nil {
+		return fmt.Errorf("技能不存在：%s", slug)
+	}
+	return (&distribute.Distributor{Vault: vault.New(s.config.Current().VaultPath, s.store), Store: s.store}).Uninstall(record.ID, target.ID)
+}
+
+func (s *Service) ListSkillAssignments(slug string) ([]SkillAssignment, error) {
+	record, err := s.store.FindSkillBySlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	if record == nil {
+		return nil, fmt.Errorf("技能不存在：%s", slug)
+	}
+	targets, err := s.ensureTargets()
+	if err != nil {
+		return nil, err
+	}
+	byTarget := map[string]store.TargetRecord{}
+	adapters := agent.Defaults()
+	for _, adapter := range adapters {
+		if target, ok := targets[adapter.ID]; ok {
+			byTarget[target.ID] = target
+		}
+	}
+	list, err := s.store.ListAssignments(record.ID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]SkillAssignment, 0, len(list))
+	for _, assignment := range list {
+		target, ok := byTarget[assignment.TargetID]
+		if !ok {
+			continue
+		}
+		out = append(out, s.assignmentDTO(record, target, assignment))
+	}
+	return out, nil
+}
+
+func (s *Service) assignmentDTO(record *store.SkillRecord, target store.TargetRecord, assignment store.AssignmentRecord) SkillAssignment {
+	adapter := agent.Adapter{ID: target.AgentID, Name: target.Name}
+	for _, item := range agent.Defaults() {
+		if item.ID == target.AgentID {
+			adapter = item
+			break
+		}
+	}
+	return SkillAssignment{
+		ID: assignment.ID, AgentID: adapter.ID, TargetName: adapter.Name,
+		Short: adapter.Short, Color: adapter.Color, Mode: assignment.Mode,
+		InstalledPath: assignment.InstalledPath, Status: assignment.Status, UpdatedAt: assignment.UpdatedAt,
+	}
 }

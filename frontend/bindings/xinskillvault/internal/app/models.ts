@@ -17,8 +17,33 @@ export interface AppInfo {
     "schemaVersion": number;
 }
 
+export interface DistributionTarget {
+    "id": string;
+    "name": string;
+    "short": string;
+    "color": string;
+    "path": string;
+    "defaultMode": string;
+    "detected": boolean;
+    "installed": boolean;
+    "installedMode": string;
+    "installedPath": string;
+}
+
 export interface SaveConfigResult {
     "restartRequired": boolean;
+}
+
+export interface SkillAssignment {
+    "id": string;
+    "agentId": string;
+    "targetName": string;
+    "short": string;
+    "color": string;
+    "mode": string;
+    "installedPath": string;
+    "status": string;
+    "updatedAt": number;
 }
 
 export interface SkillDetail {
@@ -34,6 +59,7 @@ export interface SkillDetail {
     "sizeBytes": number;
     "fileCount": number;
     "enabled": boolean;
+    "assignedCount": number;
     "sourceType": string;
     "contentHash": string;
     "updatedAt": number;
@@ -57,6 +83,7 @@ export interface SkillItem {
     "sizeBytes": number;
     "fileCount": number;
     "enabled": boolean;
+    "assignedCount": number;
     "sourceType": string;
     "contentHash": string;
     "updatedAt": number;
