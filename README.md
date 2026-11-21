@@ -3,7 +3,7 @@
 > 把散落在各个 Agent 目录里的 Skills 统一管理：集中收录、按需分发，一处更新，多处生效。
 
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-1f6feb?style=flat-square)](#下载)
-[![Version](https://img.shields.io/badge/version-v0.1.1-2f81f7?style=flat-square)](https://github.com/oscar-wang-xin/xin-skill-vault/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.2-2f81f7?style=flat-square)](https://github.com/oscar-wang-xin/xin-skill-vault/releases)
 [![License](https://img.shields.io/badge/license-MIT-2ea043?style=flat-square)](LICENSE)
 [![Local first](https://img.shields.io/badge/local--first-no%20account%20%C2%B7%20no%20telemetry-6e7681?style=flat-square)](#设计原则)
 
@@ -79,7 +79,7 @@
 
 | 平台 | 发布文件 | 说明 |
 |---|---|---|
-| Windows 10 / 11 x64 | `XinSkillVault-0.1.1-win-x64.zip` | 解压后运行 `xinskillvault.exe`；需要 WebView2 Runtime |
+| Windows 10 / 11 x64 | `XinSkillVault-0.1.2-win-x64.zip` | 解压后运行 `xinskillvault.exe`；需要 WebView2 Runtime |
 | macOS / Linux | 源码构建 | 当前未提供官方发布包 |
 
 > 当前 Windows 构建未做代码签名，SmartScreen 可能提示确认。
@@ -141,8 +141,8 @@ wails3 build
 ### Windows 免安装包
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.1
-# -> bin/release/XinSkillVault-0.1.1-win-x64.zip
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.2
+# -> bin/release/XinSkillVault-0.1.2-win-x64.zip
 ```
 
 ### 前端预览
@@ -193,7 +193,7 @@ xin-skill-vault/
 
 ## 路线图
 
-- [x] v0.1.1：中央仓库、目录/ZIP/Bundle 导入、扫描发现、Junction/Copy 分发、项目模块、提示词、组合、标签、笔记、市场与诊断包。
+- [x] v0.1.2：中央仓库、目录/ZIP/Bundle 导入、扫描发现、Junction/Copy 分发、项目模块、提示词、组合、标签、笔记、市场与诊断包。
 - [x] URL / Git 仓库导入：GitHub 仓库、tree 子目录、raw SKILL.md、zip、tar.gz；跳过/覆盖冲突策略。
 - [ ] 应用内更新检查。
 - [ ] macOS / Linux 官方构建与签名。
