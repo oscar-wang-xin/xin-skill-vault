@@ -154,6 +154,10 @@ export function ImportSkillDirectory(source: string): $CancellablePromise<$model
     return $Call.ByID(1879938159, source);
 }
 
+export function ImportSkillURL(rawURL: string, conflict: string): $CancellablePromise<$models.URLImportResult> {
+    return $Call.ByID(1349498045, rawURL, conflict);
+}
+
 export function InstallMarketSkill(source: string, slug: string, $namespace: string, force: boolean): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(3926582246, source, slug, $namespace, force);
 }

@@ -29,5 +29,6 @@ export type {
     SkillItem,
     SnapshotItem,
     TagItem,
+    URLImportResult,
     VaultSummary
 } from "./models.js";

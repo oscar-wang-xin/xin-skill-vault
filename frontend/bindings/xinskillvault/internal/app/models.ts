@@ -234,6 +234,11 @@ export interface TagItem {
     "count": number;
 }
 
+export interface URLImportResult {
+    "status": string;
+    "skill": SkillItem;
+}
+
 export interface VaultSummary {
     "vaultPath": string;
     "promptRoot": string;

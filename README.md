@@ -27,7 +27,7 @@
 ### 中央仓库与多来源收录
 
 - 默认仓库位置：`%USERPROFILE%\.skill-repo`，可在设置中更改。
-- 导入本地文件夹、ZIP、`.skill` 和 Bundle。
+- 导入本地文件夹、ZIP、`.skill`、Bundle，以及 GitHub / 原始 URL / tar.gz。
 - 扫描本机 Agent 目录，识别未导入/有变更的技能。
 - 市场安装：SkillHub 与 skills.sh。
 - 每个技能计算 SHA256 内容指纹，SQLite 仅作为可重建索引。
@@ -194,7 +194,7 @@ xin-skill-vault/
 ## 路线图
 
 - [x] v0.1.1：中央仓库、目录/ZIP/Bundle 导入、扫描发现、Junction/Copy 分发、项目模块、提示词、组合、标签、笔记、市场与诊断包。
-- [ ] URL / Git 仓库导入。
+- [x] URL / Git 仓库导入：GitHub 仓库、tree 子目录、raw SKILL.md、zip、tar.gz；跳过/覆盖冲突策略。
 - [ ] 应用内更新检查。
 - [ ] macOS / Linux 官方构建与签名。
 - [ ] 笔记双链与更多组织能力。

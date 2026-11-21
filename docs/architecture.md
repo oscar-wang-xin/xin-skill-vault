@@ -81,6 +81,7 @@ Wails v3 application
 | `ExportSkillPackage` / `ExportSkillsBundle` | 导出单个 `.skill` 或多技能 Bundle zip |
 | `ExportDiagnostics` | 导出诊断 zip：诊断 JSON、配置、日志、README |
 | `PickBundleArchive` / `ImportBundleArchive` | 选择并导入 Bundle：解析 bundle.json、逐个技能入库 |
+| `ImportSkillURL` | GitHub / raw / zip / tar.gz URL 导入，支持跳过/覆盖 |
 | `ListBundles` / `CreateBundle` / `UpdateBundle` / `DeleteBundle` | 持久化 Bundle CRUD |
 | `ListBundleSkills` / `ExportBundle` | Bundle 技能引用与重复导出 |
 | `Timestamp` | 前端探测真实后端是否可用 |

@@ -16,6 +16,7 @@ import {
   getSkillNote,
   importBundleArchive,
   importSkillArchive,
+  importSkillURL,
   importSkillDirectory,
   listSkillSnapshots,
   listSkills,
@@ -82,6 +83,10 @@ const exporting = ref(false);
 const bundleModal = ref(false);
 const bundleName = ref("skills-bundle");
 const bundleBusy = ref(false);
+const urlModal = ref(false);
+const urlInput = ref("");
+const urlConflict = ref<"skip" | "overwrite">("skip");
+const urlBusy = ref(false);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -246,6 +251,29 @@ async function importArchive() {
     showToast(errorMessage(error));
   } finally {
     importing.value = false;
+  }
+}
+
+function openURLImport() {
+  urlInput.value = "";
+  urlConflict.value = "skip";
+  urlModal.value = true;
+}
+
+async function saveURLImport() {
+  if (!urlInput.value.trim() || urlBusy.value) return;
+  urlBusy.value = true;
+  try {
+    const result = await importSkillURL(urlInput.value.trim(), urlConflict.value);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
+    urlModal.value = false;
+    if (result.status === "skipped") showToast(`已存在，已跳过：${result.skill.name}`);
+    else if (result.status === "overwritten") showToast(`已覆盖更新：${result.skill.name}`);
+    else showToast(`已导入：${result.skill.name}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    urlBusy.value = false;
   }
 }
 
@@ -659,6 +687,9 @@ onUnmounted(() => {
           <button class="btn" :disabled="importing" title="导入 Bundle zip" @click="importBundle">
             <Icon name="layers" :size="13" /> Bundle
           </button>
+          <button class="btn" :disabled="importing" title="从 URL / GitHub 导入" @click="openURLImport">
+            <Icon name="link" :size="13" /> URL
+          </button>
           <button class="btn" :disabled="refreshing" title="重新读取本地仓库" @click="refresh">
             <Icon name="refresh" :size="14" :class="{ spin: refreshing }" />
             {{ refreshing ? "刷新中…" : "刷新" }}
@@ -898,6 +929,28 @@ onUnmounted(() => {
       </footer>
     </aside>
 
+    <div v-if="urlModal" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card">
+        <div class="confirm-head">
+          <div><h3>从 URL 导入</h3><p>支持 GitHub 仓库 / tree 子目录 / raw SKILL.md / zip / tar.gz。</p></div>
+          <button class="icon-btn" :disabled="urlBusy" @click="urlModal = false"><Icon name="x" :size="15" /></button>
+        </div>
+        <div style="padding: 0 14px 10px">
+          <input v-model="urlInput" class="input mono" placeholder="https://github.com/owner/repo 或 https://…/SKILL.md" @keydown.enter="saveURLImport" />
+          <label class="url-conflict"><span>同名技能</span>
+            <select v-model="urlConflict" class="input">
+              <option value="skip">跳过</option>
+              <option value="overwrite">覆盖（先写快照）</option>
+            </select>
+          </label>
+        </div>
+        <div class="confirm-foot">
+          <button class="btn" :disabled="urlBusy" @click="urlModal = false">取消</button>
+          <button class="btn primary" :disabled="urlBusy" @click="saveURLImport">{{ urlBusy ? "导入中…" : "导入" }}</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="bundleModal" class="confirm-overlay" @click.self.stop>
       <div class="confirm-card">
         <div class="confirm-head">
@@ -1080,6 +1133,8 @@ onUnmounted(() => {
 .skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }
 .skill-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .tag-select { width: 120px; font-size: 10px; }
+.url-conflict { display: flex; align-items: center; gap: 8px; margin-top: 7px; color: var(--text-4); font-size: 9.5px; }
+.url-conflict .input { width: 150px; }
 .tag-manager { width: min(500px, calc(100vw - 32px)); }
 .tag-manager-list { max-height: 420px; overflow: auto; padding: 6px 14px 10px; }
 .tag-manager-row { display: flex; align-items: center; gap: 6px; min-height: 32px; border-bottom: 1px dashed var(--border-soft); }
