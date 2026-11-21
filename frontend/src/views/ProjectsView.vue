@@ -42,8 +42,16 @@ const skillModal = ref(false);
 const skillQuery = ref("");
 const skillDraft = ref<string[]>([]);
 const skillMode = ref<"link" | "copy">("link");
-const confirm = ref<null | { kind: "project" | "skill"; title: string; message: string; slug?: string }>(null);
+const confirm = ref<null | { kind: "project" | "skill" | "bulk"; title: string; message: string; slug?: string }>(null);
+const selectedSlugs = ref<string[]>([]);
 const busy = ref(false);
+const projectSideWidth = ref(Number(localStorage.getItem("xsv-project-side-w")) || 270);
+const layoutEl = ref<HTMLElement | null>(null);
+let resizeStartX = 0;
+let resizeStartWidth = 0;
+let resizing = false;
+
+const allSelected = computed(() => projectSkills.value.length > 0 && projectSkills.value.every((item) => selectedSlugs.value.includes(item.slug)));
 
 const filteredSkills = computed(() => {
   const query = skillQuery.value.trim().toLowerCase();
@@ -86,15 +94,57 @@ async function loadProjectSkills() {
   }
   try {
     projectSkills.value = await listProjectSkills(selectedId.value);
+    selectedSlugs.value = selectedSlugs.value.filter((slug) => projectSkills.value.some((item) => item.slug === slug));
   } catch (error) {
     projectSkills.value = [];
+    selectedSlugs.value = [];
     showToast(errorMessage(error));
   }
 }
 
 async function selectProject(id: string) {
   selectedId.value = id;
+  selectedSlugs.value = [];
   await loadProjectSkills();
+}
+
+function toggleProjectSkill(slug: string) {
+  selectedSlugs.value = selectedSlugs.value.includes(slug)
+    ? selectedSlugs.value.filter((item) => item !== slug)
+    : [...selectedSlugs.value, slug];
+}
+
+function toggleAllProjectSkills() {
+  selectedSlugs.value = allSelected.value ? [] : projectSkills.value.map((item) => item.slug);
+}
+
+function startResize(event: PointerEvent) {
+  if (!layoutEl.value) return;
+  resizing = true;
+  resizeStartX = event.clientX;
+  resizeStartWidth = projectSideWidth.value;
+  window.addEventListener("pointermove", onResize);
+  window.addEventListener("pointerup", stopResize);
+  event.preventDefault();
+}
+
+function onResize(event: PointerEvent) {
+  if (!resizing) return;
+  const delta = event.clientX - resizeStartX;
+  projectSideWidth.value = Math.max(220, Math.min(380, Math.round(resizeStartWidth + delta)));
+}
+
+function stopResize() {
+  if (!resizing) return;
+  resizing = false;
+  localStorage.setItem("xsv-project-side-w", String(projectSideWidth.value));
+  window.removeEventListener("pointermove", onResize);
+  window.removeEventListener("pointerup", stopResize);
+}
+
+function resetSideWidth() {
+  projectSideWidth.value = 280;
+  localStorage.setItem("xsv-project-side-w", "280");
 }
 
 async function loadAgents() {
@@ -223,6 +273,14 @@ function askRemoveSkill(skill: ProjectSkill) {
   };
 }
 
+function askRemoveSelected() {
+  if (!selectedSlugs.value.length) return;
+  confirm.value = {
+    kind: "bulk", title: "批量从项目移除技能",
+    message: `将从项目支持的所有 Agent 目录移除 ${selectedSlugs.value.length} 个技能的链接/复制件，不会删除仓库技能。`,
+  };
+}
+
 function askRemoveProject() {
   if (!selected.value) return;
   confirm.value = {
@@ -240,6 +298,15 @@ async function runConfirm() {
       confirm.value = null;
       await loadProjects();
       showToast("项目已移除");
+    } else if (confirm.value.kind === "bulk") {
+      const count = selectedSlugs.value.length;
+      for (const slug of [...selectedSlugs.value]) {
+        await removeProjectSkill(selected.value.id, slug);
+      }
+      confirm.value = null;
+      selectedSlugs.value = [];
+      await loadProjects(selected.value.id);
+      showToast(`已移除 ${count} 个技能`);
     } else if (confirm.value.slug) {
       await removeProjectSkill(selected.value.id, confirm.value.slug);
       confirm.value = null;
@@ -280,7 +347,11 @@ onMounted(async () => {
   await loadProjects();
   window.addEventListener("keydown", onKeydown);
 });
-onUnmounted(() => window.removeEventListener("keydown", onKeydown));
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("pointermove", onResize);
+  window.removeEventListener("pointerup", stopResize);
+});
 </script>
 
 <template>
@@ -295,7 +366,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
       </div>
     </div>
 
-    <div class="projects-layout">
+    <div ref="layoutEl" class="projects-layout" :style="{ gridTemplateColumns: `${projectSideWidth}px minmax(0, 1fr)` }">
       <aside class="project-side">
         <div v-if="!projects.length && !loading" class="project-empty">
           <Icon name="projects" :size="18" />
@@ -316,6 +387,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
             <small>{{ project.skillCount }} 个技能 · {{ project.agents?.length ?? 0 }} 个 Agent</small>
           </span>
         </button>
+        <div class="project-resizer" title="拖动调整宽度，双击复位" @pointerdown="startResize" @dblclick="resetSideWidth" />
       </aside>
 
       <section v-if="selected" class="project-detail">
@@ -351,6 +423,16 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
           </button>
         </div>
 
+        <div v-if="projectSkills.length" class="project-batch">
+          <button class="mini-check" :class="{ on: allSelected }" @click="toggleAllProjectSkills">
+            <Icon v-if="allSelected" name="check" :size="10" />
+          </button>
+          <span>{{ allSelected ? "全不选" : "全选" }}</span>
+          <span class="muted">已选 {{ selectedSlugs.length }}</span>
+          <div class="grow" />
+          <button class="btn sm danger" :disabled="!selectedSlugs.length || busy" @click="askRemoveSelected">移除已选</button>
+        </div>
+
         <div v-if="!projectSkills.length" class="project-empty detail-empty">
           <Icon name="layers" :size="18" />
           <b>项目还没有技能</b>
@@ -358,8 +440,11 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
           <button class="btn sm" :disabled="!selected.agents?.length" @click="openSkillModal">添加技能</button>
         </div>
         <div v-else class="project-skill-table">
-          <div class="ps-row ps-head"><span>#</span><span>技能</span><span>方式</span><span>Agent</span><span>状态</span><span></span></div>
+          <div class="ps-row ps-head"><span></span><span>#</span><span>技能</span><span>方式</span><span>Agent</span><span>状态</span><span></span></div>
           <div v-for="(skill, index) in projectSkills" :key="skill.slug" class="ps-row">
+            <button class="mini-check" :class="{ on: selectedSlugs.includes(skill.slug) }" @click="toggleProjectSkill(skill.slug)">
+              <Icon v-if="selectedSlugs.includes(skill.slug)" name="check" :size="10" />
+            </button>
             <span class="ps-idx">{{ index + 1 }}</span>
             <span class="ps-main">
               <b>{{ skill.name }}</b>
@@ -495,7 +580,9 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 
 <style scoped>
 .projects-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 14px; align-items: start; }
-.project-side { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.project-side { display: flex; flex-direction: column; gap: 5px; min-width: 0; position: relative; }
+.project-resizer { position: absolute; top: 0; right: -8px; bottom: 0; width: 8px; cursor: col-resize; z-index: 2; }
+.project-resizer:hover { background: var(--accent-soft); }
 .project-card { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 9px; border: 1px solid transparent; border-radius: 8px; text-align: left; }
 .project-card:hover { background: var(--panel-2); }
 .project-card.active { border-color: var(--border); background: var(--panel); box-shadow: var(--shadow-sm); }
@@ -521,9 +608,12 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 .project-skill-head p { margin: 3px 0 0; color: var(--text-4); font-size: 9.5px; }
 .project-skill-head .btn { margin-left: auto; }
 .project-skill-table { padding: 0 16px 12px; }
-.ps-row { display: grid; grid-template-columns: 20px minmax(160px, 1fr) 75px 70px 60px 22px; gap: 7px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--border-soft); min-width: 0; }
+.ps-row { display: grid; grid-template-columns: 18px 20px minmax(160px, 1fr) 75px 70px 60px 22px; gap: 6px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--border-soft); min-width: 0; }
 .ps-row:last-child { border-bottom: 0; }
 .ps-head { color: var(--text-4); font-size: 9px; border-bottom-style: solid; }
+.project-batch { display: flex; align-items: center; gap: 6px; padding: 0 16px 7px; color: var(--text-3); font-size: 9.5px; }
+.mini-check { display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid var(--border); border-radius: 4px; color: #fff; flex: none; }
+.mini-check.on { background: var(--accent); border-color: var(--accent); }
 .ps-idx { color: var(--text-4); font-size: 9px; }
 .ps-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ps-main b { font-size: 11px; font-weight: 550; }
@@ -572,5 +662,5 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 .confirm-head p { margin: 5px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.6; }
 .confirm-head .icon-btn { margin-left: auto; flex: none; }
 .confirm-foot { display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); }
-@media (max-width: 860px) { .projects-layout { grid-template-columns: 220px minmax(0, 1fr); } .ps-row { grid-template-columns: 16px minmax(120px, 1fr) 60px 50px 50px 20px; } }
+@media (max-width: 860px) { .ps-row { grid-template-columns: 16px 16px minmax(120px, 1fr) 55px 45px 45px 20px; } }
 </style>

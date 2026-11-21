@@ -108,7 +108,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
 - 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表、单条/全部修复
-- 前端项目：项目列表 + 项目详情、项目 Agent 配置、批量添加技能、项目技能表与移除
+- 前端项目：项目列表 + 项目详情、左列拖宽、项目 Agent 配置、批量添加/移除技能、项目技能表
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -116,7 +116,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 junction、项目页批量操作
+- M2 junction、修复前备份本地修改
 
 ## 8. 下一步
 
