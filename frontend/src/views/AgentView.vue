@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import { checkDrift, errorMessage, importScannedSkill, listAgentSkills, openAgentFolder, repairAllDrift, repairDrift, scanAgents, uninstallSkill } from "../lib/api";
 import type { AgentSkillItem } from "../../bindings/xinskillvault/internal/app/models";
@@ -17,6 +17,11 @@ const selectedID = ref("");
 const agentSkills = ref<AgentSkillItem[]>([]);
 const skillsLoading = ref(false);
 const toast = ref("");
+const agentSideWidth = ref(Number(localStorage.getItem("xsv-agent-side-w")) || 250);
+const layoutEl = ref<HTMLElement | null>(null);
+let resizeStartX = 0;
+let resizeStartWidth = 0;
+let resizing = false;
 let toastTimer: number | undefined;
 
 const agents = computed(() => (result.value?.agents ?? []).slice().sort((a, b) => Number(b.detected) - Number(a.detected) || a.name.localeCompare(b.name)));
@@ -160,7 +165,38 @@ async function runRepair() {
   }
 }
 
+function startResize(event: PointerEvent) {
+  resizing = true;
+  resizeStartX = event.clientX;
+  resizeStartWidth = agentSideWidth.value;
+  window.addEventListener("pointermove", onResize);
+  window.addEventListener("pointerup", stopResize);
+  event.preventDefault();
+}
+
+function onResize(event: PointerEvent) {
+  if (!resizing) return;
+  agentSideWidth.value = Math.max(160, Math.min(340, Math.round(resizeStartWidth + event.clientX - resizeStartX)));
+}
+
+function stopResize() {
+  if (!resizing) return;
+  resizing = false;
+  localStorage.setItem("xsv-agent-side-w", String(agentSideWidth.value));
+  window.removeEventListener("pointermove", onResize);
+  window.removeEventListener("pointerup", stopResize);
+}
+
+function resetSideWidth() {
+  agentSideWidth.value = 250;
+  localStorage.setItem("xsv-agent-side-w", "250");
+}
+
 onMounted(refresh);
+onUnmounted(() => {
+  window.removeEventListener("pointermove", onResize);
+  window.removeEventListener("pointerup", stopResize);
+});
 </script>
 
 <template>
@@ -184,8 +220,9 @@ onMounted(refresh);
       <p>桌面应用会检测本机 Claude Code、Codex、Cursor、Alma 等常见 skill 目录。</p>
     </div>
 
-    <div v-else class="agent-layout">
+    <div v-else ref="layoutEl" class="agent-layout" :style="{ gridTemplateColumns: `${agentSideWidth}px minmax(0, 1fr)` }">
       <aside class="agent-list">
+        <div class="agent-resizer" title="拖动调整宽度，双击复位" @pointerdown="startResize" @dblclick="resetSideWidth" />
         <button
           v-for="agent in agents"
           :key="agent.id"
@@ -322,7 +359,9 @@ onMounted(refresh);
 
 <style scoped>
 .agent-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 14px; align-items: start; min-height: 360px; }
-.agent-list { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.agent-list { display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative; }
+.agent-resizer { position: absolute; top: 0; right: -7px; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
+.agent-resizer:hover { background: var(--accent-soft); }
 .agent-list-row { display: flex; align-items: flex-start; gap: 7px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 8px; text-align: left; }
 .agent-list-row:hover { background: var(--panel-2); }
 .agent-list-row.active { border-color: var(--border); background: var(--panel); box-shadow: var(--shadow-sm); }
@@ -336,7 +375,7 @@ onMounted(refresh);
 .agent-detail-head h2 { margin: 0; font-size: 15px; }
 .agent-detail-head span { color: var(--text-4); font-size: 9px; }
 .agent-detail-actions { margin-left: auto; }
-.agent-skill-table { padding: 0 14px 10px; overflow: auto; }
+.agent-skill-table { padding: 0 14px 10px; overflow: auto; min-width: 620px; }
 .as-row { display: grid; grid-template-columns: 20px minmax(200px, 1fr) 62px 86px 50px; gap: 7px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--border-soft); min-width: 0; }
 .as-row:last-child { border-bottom: 0; }
 .as-head { color: var(--text-4); font-size: 9px; border-bottom-style: solid; }
