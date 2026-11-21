@@ -55,7 +55,6 @@ func Sources() []Source {
 	return []Source{
 		{ID: "skillhub", Name: "SkillHub", Status: "available", Note: "中文社区公开 API"},
 		{ID: "skills-sh", Name: "skills.sh", Status: "available", Note: "sitemap 目录 + GitHub 仓库安装"},
-		{ID: "skillsmp", Name: "SkillsMP", Status: "experimental", Note: "Cloudflare 防护，暂未启用"},
 	}
 }
 

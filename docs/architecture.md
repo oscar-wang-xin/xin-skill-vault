@@ -112,7 +112,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
 - 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表、单条/全部修复
 - 前端项目：项目列表 + 项目详情、左列拖宽、项目 Agent 配置、批量添加/移除技能、项目技能表
-- `internal/market`：Provider 接口、SkillHub API、skills.sh sitemap+GitHub 仓库适配器、磁盘缓存、zip 安全审计；SkillsMP 暂标记实验性
+- `internal/market`：Provider 接口、SkillHub API、skills.sh sitemap+GitHub 仓库适配器、磁盘缓存、zip 安全审计；只采用可调用源
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -120,7 +120,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M3 SkillsMP、应用更新检查
+- M3 应用更新检查
 
 ## 8. 下一步
 
