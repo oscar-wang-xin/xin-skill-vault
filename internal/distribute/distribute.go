@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	"xinskillvault/internal/store"
@@ -32,13 +35,16 @@ func (d *Distributor) Install(target store.TargetRecord, slug, mode string) (sto
 	if mode == "symlink" {
 		mode = "link"
 	}
-	if mode != "link" && mode != "copy" {
+	if mode != "link" && mode != "copy" && mode != "junction" {
 		mode = target.DefaultMode
 	}
 	if mode == "symlink" {
 		mode = "link"
 	}
-	if mode != "link" && mode != "copy" {
+	if mode == "junction" && runtime.GOOS != "windows" {
+		mode = "link"
+	}
+	if mode != "link" && mode != "copy" && mode != "junction" {
 		mode = "copy"
 	}
 	record, err := d.Store.FindSkillBySlug(slug)
@@ -64,13 +70,24 @@ func (d *Distributor) Install(target store.TargetRecord, slug, mode string) (sto
 		if existing == nil || existing.InstalledPath != dest {
 			return zero, fmt.Errorf("目标目录已存在同名技能：%s", dest)
 		}
-		if err := removeInstalled(dest); err != nil {
+		if err := removeInstalled(dest, existing.Mode); err != nil {
 			return zero, fmt.Errorf("remove previous install: %w", err)
 		}
 	}
 	actualMode := mode
-	if mode == "link" {
-		if err := os.Symlink(sourceDir, dest); err != nil {
+	if mode == "link" || mode == "junction" {
+		actualMode = ""
+		if runtime.GOOS == "windows" {
+			if err := createJunction(sourceDir, dest); err == nil {
+				actualMode = "junction"
+			}
+		}
+		if actualMode == "" {
+			if err := os.Symlink(sourceDir, dest); err == nil {
+				actualMode = "link"
+			}
+		}
+		if actualMode == "" {
 			actualMode = "copy"
 		}
 	}
@@ -109,7 +126,7 @@ func (d *Distributor) Install(target store.TargetRecord, slug, mode string) (sto
 		assignment.AssignedAt = existing.AssignedAt
 	}
 	if err := d.Store.UpsertAssignment(assignment); err != nil {
-		_ = removeInstalled(dest)
+		_ = removeInstalled(dest, actualMode)
 		return zero, err
 	}
 	return assignment, nil
@@ -123,13 +140,24 @@ func (d *Distributor) Uninstall(skillID, targetID string) error {
 	if assignment == nil {
 		return fmt.Errorf("没有找到分发记录")
 	}
-	if err := removeInstalled(assignment.InstalledPath); err != nil && !os.IsNotExist(err) {
+	if err := removeInstalled(assignment.InstalledPath, assignment.Mode); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove installed skill: %w", err)
 	}
 	return d.Store.DeleteAssignment(assignment.ID)
 }
 
-func removeInstalled(path string) error {
+func removeInstalled(path, mode string) error {
+	if mode == "junction" {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove junction: %w", err)
+		}
+		return nil
+	}
+	if mode == "link" {
+		if err := os.Remove(path); err == nil || os.IsNotExist(err) {
+			return nil
+		}
+	}
 	info, err := os.Lstat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -141,6 +169,17 @@ func removeInstalled(path string) error {
 		return os.Remove(path)
 	}
 	return os.RemoveAll(path)
+}
+
+func createJunction(source, target string) error {
+	if runtime.GOOS != "windows" {
+		return fmt.Errorf("junction is only supported on Windows")
+	}
+	output, err := exec.Command("cmd", "/c", "mklink", "/J", target, source).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("create junction: %w (%s)", err, strings.TrimSpace(string(output)))
+	}
+	return nil
 }
 
 func existingID(existing *store.AssignmentRecord, skillID, targetID string) string {
@@ -161,7 +200,7 @@ func (d *Distributor) RemoveTarget(targetID string) error {
 		return err
 	}
 	for _, assignment := range assignments {
-		if err := removeInstalled(assignment.InstalledPath); err != nil && !os.IsNotExist(err) {
+		if err := removeInstalled(assignment.InstalledPath, assignment.Mode); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove installed skill: %w", err)
 		}
 	}

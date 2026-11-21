@@ -103,7 +103,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - `internal/agent`：11 个内置 Agent 适配器与目录检测
 - `internal/scan`：单层技能扫描、hash 比对、new/changed Finding、错误收集
 - `internal/vault` 覆盖更新：目录 zip 快照、原子替换、快照恢复（文件/目录两种格式）
-- `internal/distribute`：Agent 目录安装/移除，链接失败自动复制，`.skillrepo-manifest.json`
+- `internal/distribute`：Agent 目录安装/移除，Windows junction → 符号链接 → 复制降级，`.skillrepo-manifest.json`
 - 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
 - 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
@@ -116,7 +116,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 junction、修复前备份本地修改
+- M2 修复前备份本地修改
 
 ## 8. 下一步
 

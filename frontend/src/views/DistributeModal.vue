@@ -155,7 +155,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
               <Icon name="file" :size="12" /> 复制
             </button>
           </div>
-          <span class="muted dist-hint">{{ mode === "link" ? "优先创建链接，失败自动复制" : "复制完整目录，可独立修改" }}</span>
+          <span class="muted dist-hint">{{ mode === "link" ? "Windows 优先 junction，其次符号链接，失败自动复制" : "复制完整目录，可独立修改" }}</span>
           <div class="grow" />
           <button class="btn sm" :disabled="!available.length || busy" @click="toggleAll">
             {{ allSelected ? "全不选" : "全选可分发" }}

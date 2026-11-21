@@ -46,6 +46,10 @@ async function openFolder(id: string) {
   }
 }
 
+function modeLabel(mode: string): string {
+  return mode === "copy" ? "复制" : "链接";
+}
+
 function driftLabel(status: string): string {
   if (status === "stale") return "仓库已更新";
   if (status === "modified") return "安装件被修改";
@@ -152,7 +156,7 @@ onMounted(refresh);
           <span class="drift-status" :class="report.status">{{ driftLabel(report.status) }}</span>
           <div class="drift-main">
             <b>{{ report.skillName }}</b>
-            <span class="mono">{{ report.targetName }} · {{ report.mode === "link" ? "链接" : "复制" }}</span>
+            <span class="mono">{{ report.targetName }} · {{ modeLabel(report.mode) }}</span>
             <span class="mono drift-path">{{ report.installedPath }}</span>
           </div>
           <button class="btn sm" :disabled="!!repairing" @click="askRepair(report)">

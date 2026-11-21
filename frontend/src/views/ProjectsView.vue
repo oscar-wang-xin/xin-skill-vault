@@ -330,7 +330,7 @@ async function openFolder() {
 }
 
 function modes(skill: ProjectSkill): string {
-  const set = new Set((skill.agents ?? []).map((item) => item.mode === "link" ? "链接" : "复制"));
+  const set = new Set((skill.agents ?? []).map((item) => item.mode === "copy" ? "复制" : "链接"));
   return Array.from(set).join(" + ") || "—";
 }
 
