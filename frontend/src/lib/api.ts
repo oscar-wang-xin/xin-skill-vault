@@ -290,6 +290,13 @@ export async function openProjectFolder(id: string): Promise<void> {
   await AppService.OpenProjectFolder(id);
 }
 
+
+export async function repairAllDrift(): Promise<{ repaired: number; errors: string[] }> {
+  if (!(await hasBackend())) throw new Error("批量修复需要桌面应用");
+  const result = await AppService.RepairAllDrift();
+  return { repaired: result.repaired, errors: result.errors ?? [] };
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

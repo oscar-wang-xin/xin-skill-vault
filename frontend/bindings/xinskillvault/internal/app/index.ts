@@ -14,6 +14,7 @@ export type {
     ProjectItem,
     ProjectSkill,
     ProjectSkillAgent,
+    RepairSummary,
     SaveConfigResult,
     SkillAssignment,
     SkillDetail,

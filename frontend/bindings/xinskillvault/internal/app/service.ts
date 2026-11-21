@@ -149,6 +149,10 @@ export function RemoveProjectSkill(id: string, slug: string): $CancellablePromis
     return $Call.ByID(1724243308, id, slug);
 }
 
+export function RepairAllDrift(): $CancellablePromise<$models.RepairSummary> {
+    return $Call.ByID(1644892785);
+}
+
 export function RepairDrift(slug: string, targetID: string): $CancellablePromise<void> {
     return $Call.ByID(3231071682, slug, targetID);
 }

@@ -73,6 +73,11 @@ export interface ProjectSkillAgent {
     "installedPath": string;
 }
 
+export interface RepairSummary {
+    "repaired": number;
+    "errors": string[] | null;
+}
+
 export interface SaveConfigResult {
     "restartRequired": boolean;
 }

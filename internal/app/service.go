@@ -734,3 +734,27 @@ func (s *Service) RepairDrift(slug, targetID string) error {
 	}
 	return nil
 }
+
+type RepairSummary struct {
+	Repaired int      `json:"repaired"`
+	Errors   []string `json:"errors"`
+}
+
+func (s *Service) RepairAllDrift() (RepairSummary, error) {
+	summary := RepairSummary{Errors: []string{}}
+	reports, err := distribute.Check(s.store, vault.New(s.config.Current().VaultPath, s.store))
+	if err != nil {
+		return summary, err
+	}
+	for _, report := range reports {
+		if report.Status == "ok" {
+			continue
+		}
+		if _, err := distribute.RepairTarget(s.store, vault.New(s.config.Current().VaultPath, s.store), report.SkillSlug, report.TargetID); err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("%s / %s: %v", report.SkillName, report.TargetName, err))
+			continue
+		}
+		summary.Repaired++
+	}
+	return summary, nil
+}

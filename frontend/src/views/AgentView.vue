@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
-import { checkDrift, errorMessage, openAgentFolder, repairDrift, scanAgents } from "../lib/api";
+import { checkDrift, errorMessage, openAgentFolder, repairAllDrift, repairDrift, scanAgents } from "../lib/api";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 
@@ -10,6 +10,7 @@ const scanning = ref(false);
 const drift = ref<DriftReport[]>([]);
 const repairing = ref("");
 const confirmReport = ref<DriftReport | null>(null);
+const confirmAll = ref(false);
 const toast = ref("");
 let toastTimer: number | undefined;
 
@@ -50,6 +51,25 @@ function driftLabel(status: string): string {
   if (status === "modified") return "安装件被修改";
   if (status === "missing") return "安装件缺失";
   return status;
+}
+
+function askRepairAll() {
+  if (!repairing.value && issues.value.length) confirmAll.value = true;
+}
+
+async function runRepairAll() {
+  if (repairing.value) return;
+  repairing.value = "all";
+  try {
+    const summary = await repairAllDrift();
+    confirmAll.value = false;
+    await refresh();
+    showToast(summary.errors.length ? `已修复 ${summary.repaired} 个，${summary.errors.length} 个失败` : `已修复 ${summary.repaired} 个漂移`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    repairing.value = "";
+  }
 }
 
 function askRepair(report: DriftReport) {
@@ -123,6 +143,9 @@ onMounted(refresh);
           <h2>漂移与异常安装 <span class="badge warn">{{ issues.length }}</span></h2>
           <p>修复会用仓库当前版本覆盖 Agent 目录中的安装件；“安装件被修改”的本地改动会被覆盖。</p>
         </div>
+        <button class="btn sm" :disabled="!!repairing" @click="askRepairAll">
+          {{ repairing === "all" ? "修复中…" : "全部修复" }}
+        </button>
       </div>
       <div class="drift-list">
         <div v-for="report in issues" :key="`${report.skillSlug}:${report.targetId}`" class="drift-row">
@@ -142,6 +165,22 @@ onMounted(refresh);
     <div v-if="result?.errors?.length" class="agent-errors">
       <b>{{ result.errors.length }} 个目录扫描失败</b>
       <span v-for="error in result.errors.slice(0, 3)" :key="error">{{ error }}</span>
+    </div>
+
+    <div v-if="confirmAll" class="agent-confirm" @click.self.stop>
+      <div class="agent-confirm-card">
+        <div class="agent-confirm-head">
+          <div>
+            <h3>修复全部漂移</h3>
+            <p>将用仓库当前版本覆盖 {{ issues.length }} 个异常安装件。若安装件被本地修改，这些修改会丢失。</p>
+          </div>
+          <button class="icon-btn" :disabled="!!repairing" @click="confirmAll = false"><Icon name="x" :size="15" /></button>
+        </div>
+        <div class="agent-confirm-foot">
+          <button class="btn" :disabled="!!repairing" @click="confirmAll = false">取消</button>
+          <button class="btn primary" :disabled="!!repairing" @click="runRepairAll">{{ repairing === "all" ? "修复中…" : "确认修复" }}</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="confirmReport" class="agent-confirm" @click.self.stop>
@@ -176,6 +215,8 @@ onMounted(refresh);
 .agent-count b { font-size: 14px; font-weight: 600; }
 .agent-count span { color: var(--text-4); font-size: 8.5px; }
 .drift-section { margin-top: 18px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+.drift-head { display: flex; align-items: flex-start; gap: 10px; }
+.drift-head > .btn { margin-left: auto; flex: none; }
 .drift-head h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
 .drift-head p { margin: 5px 0 0; color: var(--text-4); font-size: 10px; line-height: 1.6; }
 .drift-list { margin-top: 9px; display: flex; flex-direction: column; }
