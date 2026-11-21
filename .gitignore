@@ -1,10 +1,33 @@
+# dependencies / build output
 node_modules/
-.tmp/
-*.log
-.DS_Store
-Thumbs.db
+frontend/node_modules/
+frontend/dist/
+bin/
+bin/release/
 .task/
 .wails/
-bin/
-frontend/dist/
-frontend/node_modules/
+.tmp/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local data / generated packages
+.env
+.env.*
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.skill
+*.bundle.zip
+*.zip
+
+# internal-only material (do not publish)
+prototype/
+docs/dev-plan.md
+docs/review.md
+change.md

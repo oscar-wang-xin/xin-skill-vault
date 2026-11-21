@@ -1,6 +1,6 @@
-# 架构说明（M0）
+# 架构说明
 
-> 更新：2026-11-21 · 对应 v0.1.0 M0 骨架
+> 对应 Xin Skill Vault v0.1.0
 
 ## 1. 运行时结构
 
@@ -93,54 +93,24 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 
 ## 5. 前端边界
 
-- **M0 AppShell**：侧栏、顶栏、主题下拉、拟态开关、命令面板、6 个路由。
-- **真实数据**：技能库读取 `GetVaultSummary` / `ListSkills`；发现页读取 `ScanAgents`；Agent 页读取扫描结果。
-- **未接入页面**：市场（M3）、项目（M2 分发后）、提示词（M4）显示阶段占位，不伪造数据。
-- **浏览器预览**：`api.ts` 先调用 `Timestamp` 探测后端；失败时使用 localStorage demo 配置，不写真实文件。
-- **主题与拟态**：localStorage 立即生效；设置页保存时写入后端 config。
+- Vue 3 + TypeScript + Vite + Pinia + Vue Router。
+- 页面：技能库、市场、Agent、项目、提示词、设置。
+- 技能库包含 Skill 仓库 / 发现 / 组合三个页签。
+- Wails 绑定由 `wails3 generate bindings` 生成，不手改。
+- 浏览器预览会探测 Wails 后端；没有后端时使用 demo 配置，不写真实文件。
 
-## 6. M0 验收
+## 6. 安全边界
 
-- [x] `wails3 build` 产出 Windows 可执行文件
-- [x] 配置/仓库/日志/数据库首次启动自动创建
-- [x] SQLite 迁移可重复执行，schema v4（含 snapshots / projects / bundles）
-- [x] Go 单元测试覆盖配置、迁移、服务摘要
-- [x] 前端 `vue-tsc` + `vite build`
-- [x] 6 个路由、主题/拟态、命令面板、配置保存
-- [x] CI 工作流（Go + 前端）
+- ZIP / Bundle 导入拒绝绝对路径、`..` 与盘符路径。
+- ZIP 大小限制 200 MB，解压大小限制 512 MB。
+- 技能指纹忽略 `.git`、`node_modules`、`.skillrepo-manifest.json` 等元数据。
+- 链接分发按 junction → symlink → copy 降级；junction 删除只移除 reparse point。
+- 市场安装前审计脚本文件与危险命令；高风险安装需要显式 force。
+- 配置与诊断包不包含技能正文；诊断日志最多读取 2 MB。
 
-## 7. M1 进度
+## 7. 数据与恢复
 
-已接通：
-
-- `internal/skill`：SKILL.md frontmatter/正文解析与校验
-- `internal/vault`：目录/ZIP 导入、SHA256 指纹、原子复制、文件清单、SKILL.md 快照保存
-- `internal/store/skills.go`：技能创建/按 slug 查询/列表/更新/快照
-- Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
-- `internal/agent`：11 个内置 Agent 适配器与目录检测
-- `internal/scan`：单层技能扫描、hash 比对、new/changed Finding、错误收集
-- `internal/vault` 覆盖更新：目录 zip 快照、原子替换、快照恢复（文件/目录两种格式）
-- `internal/distribute`：Agent 目录安装/移除，Windows junction → 符号链接 → 复制降级，`.skillrepo-manifest.json`
-- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
-- 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
-- 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
-- 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表、单条/全部修复
-- 前端项目：项目列表 + 项目详情、左列拖宽、项目 Agent 配置、批量添加/移除技能、项目技能表
-- `internal/market`：Provider 接口、SkillHub API、skills.sh sitemap+GitHub 仓库适配器、磁盘缓存、zip 安全审计；只采用可调用源
-- 示例：`examples/demo-skill/`
-
-尚未完成：
-
-- URL 导入
-- 分发、项目、提示词实际数据
-- 回收站恢复界面、快照恢复后的可视化 diff
-- M3 应用更新检查
-
-## 8. 下一步
-
-1. 批量分发与组合分发。
-2. 项目模块与按 Agent 分配。
-3. 漂移检测与批量修复。
-4. 市场与提示词。
-
-详细规格见 `docs/dev-plan.md` §4、§16。
+- 文件系统是事实来源，SQLite 索引可从文件重建。
+- 迁移按 `NNN_name.sql` 排序，升级前 checkpoint 并备份数据库。
+- 技能编辑与覆盖更新先写快照；复制件漂移修复前写 `.skillrepo/backups`。
+- 删除技能移动到 `.skillrepo/trash`，只软删除索引。
