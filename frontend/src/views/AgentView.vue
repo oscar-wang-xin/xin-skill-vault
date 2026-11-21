@@ -59,10 +59,10 @@ function askRepair(report: DriftReport) {
 async function runRepair() {
   const report = confirmReport.value;
   if (!report || repairing.value) return;
-  const key = `${report.skillSlug}:${report.agentId}`;
+  const key = `${report.skillSlug}:${report.targetId}`;
   repairing.value = key;
   try {
-    await repairDrift(report.skillSlug, report.agentId);
+    await repairDrift(report.skillSlug, report.targetId);
     confirmReport.value = null;
     await refresh();
     showToast(`已修复：${report.skillName} → ${report.targetName}`);
@@ -125,7 +125,7 @@ onMounted(refresh);
         </div>
       </div>
       <div class="drift-list">
-        <div v-for="report in issues" :key="`${report.skillSlug}:${report.agentId}`" class="drift-row">
+        <div v-for="report in issues" :key="`${report.skillSlug}:${report.targetId}`" class="drift-row">
           <span class="drift-status" :class="report.status">{{ driftLabel(report.status) }}</span>
           <div class="drift-main">
             <b>{{ report.skillName }}</b>
@@ -133,7 +133,7 @@ onMounted(refresh);
             <span class="mono drift-path">{{ report.installedPath }}</span>
           </div>
           <button class="btn sm" :disabled="!!repairing" @click="askRepair(report)">
-            {{ repairing === `${report.skillSlug}:${report.agentId}` ? "修复中…" : "修复" }}
+            {{ repairing === `${report.skillSlug}:${report.targetId}` ? "修复中…" : "修复" }}
           </button>
         </div>
       </div>

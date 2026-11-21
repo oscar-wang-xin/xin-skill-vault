@@ -12,6 +12,7 @@ type Report struct {
 	SkillSlug     string `json:"skillSlug"`
 	SkillName     string `json:"skillName"`
 	AgentID       string `json:"agentId"`
+	TargetID      string `json:"targetId"`
 	TargetName    string `json:"targetName"`
 	Mode          string `json:"mode"`
 	InstalledPath string `json:"installedPath"`
@@ -46,7 +47,7 @@ func Check(st *store.Store, v *vault.Vault) ([]Report, error) {
 				continue
 			}
 			report := Report{
-				SkillSlug: skill.Slug, SkillName: skill.Name, AgentID: target.AgentID,
+				SkillSlug: skill.Slug, SkillName: skill.Name, AgentID: target.AgentID, TargetID: target.ID,
 				TargetName: target.Name, Mode: assignment.Mode, InstalledPath: assignment.InstalledPath,
 				ExpectedHash: skill.ContentHash, ActualHash: "", Status: "ok",
 			}
@@ -78,13 +79,6 @@ func Check(st *store.Store, v *vault.Vault) ([]Report, error) {
 }
 
 func Repair(st *store.Store, v *vault.Vault, slug, agentID string) (store.AssignmentRecord, error) {
-	record, err := st.FindSkillBySlug(slug)
-	if err != nil {
-		return store.AssignmentRecord{}, err
-	}
-	if record == nil {
-		return store.AssignmentRecord{}, fmt.Errorf("技能不存在：%s", slug)
-	}
 	target, err := st.FindTargetByAgent(agentID)
 	if err != nil {
 		return store.AssignmentRecord{}, err
@@ -92,8 +86,26 @@ func Repair(st *store.Store, v *vault.Vault, slug, agentID string) (store.Assign
 	if target == nil {
 		return store.AssignmentRecord{}, fmt.Errorf("Agent 目标不存在")
 	}
+	return RepairTarget(st, v, slug, target.ID)
+}
+
+func RepairTarget(st *store.Store, v *vault.Vault, slug, targetID string) (store.AssignmentRecord, error) {
+	record, err := st.FindSkillBySlug(slug)
+	if err != nil {
+		return store.AssignmentRecord{}, err
+	}
+	if record == nil {
+		return store.AssignmentRecord{}, fmt.Errorf("技能不存在：%s", slug)
+	}
+	target, err := st.FindTargetByID(targetID)
+	if err != nil {
+		return store.AssignmentRecord{}, err
+	}
+	if target == nil {
+		return store.AssignmentRecord{}, fmt.Errorf("分发目标不存在")
+	}
 	if !target.Detected {
-		return store.AssignmentRecord{}, fmt.Errorf("Agent 目录未检测到，无法修复")
+		return store.AssignmentRecord{}, fmt.Errorf("目标目录未检测到，无法修复")
 	}
 	assignment, err := st.FindAssignment(record.ID, target.ID)
 	if err != nil {

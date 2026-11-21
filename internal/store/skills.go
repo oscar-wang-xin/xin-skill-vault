@@ -269,3 +269,15 @@ func (s *Store) DeleteSnapshot(id string) error {
 	}
 	return nil
 }
+
+func (s *Store) FindSkillByID(id string) (*SkillRecord, error) {
+	row := s.db.QueryRow(`SELECT `+skillColumns+` FROM skills WHERE id = ? AND deleted_at IS NULL`, id)
+	record, err := scanSkill(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find skill by id %q: %w", id, err)
+	}
+	return &record, nil
+}

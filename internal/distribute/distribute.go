@@ -153,3 +153,17 @@ func existingID(existing *store.AssignmentRecord, skillID, targetID string) stri
 	}
 	return "as_" + hex.EncodeToString(buf)
 }
+
+// RemoveTarget removes every assignment installed on a target and deletes the target row.
+func (d *Distributor) RemoveTarget(targetID string) error {
+	assignments, err := d.Store.ListAssignmentsByTarget(targetID)
+	if err != nil {
+		return err
+	}
+	for _, assignment := range assignments {
+		if err := removeInstalled(assignment.InstalledPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove installed skill: %w", err)
+		}
+	}
+	return d.Store.DeleteTarget(targetID)
+}

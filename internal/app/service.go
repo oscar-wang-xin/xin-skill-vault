@@ -60,6 +60,7 @@ type VaultSummary struct {
 	SkillCount      int    `json:"skillCount"`
 	TargetCount     int    `json:"targetCount"`
 	AssignmentCount int    `json:"assignmentCount"`
+	ProjectCount    int    `json:"projectCount"`
 	PromptCount     int    `json:"promptCount"`
 	CategoryCount   int    `json:"categoryCount"`
 	SchemaVersion   int    `json:"schemaVersion"`
@@ -125,6 +126,10 @@ func (s *Service) GetVaultSummary() (VaultSummary, error) {
 	if err != nil {
 		return VaultSummary{}, err
 	}
+	projects, err := s.store.ProjectCount()
+	if err != nil {
+		return VaultSummary{}, err
+	}
 	var prompts, categories, schema int
 	if err := s.store.DB().QueryRow("SELECT COUNT(*) FROM prompts").Scan(&prompts); err != nil {
 		return VaultSummary{}, fmt.Errorf("count prompts: %w", err)
@@ -146,6 +151,7 @@ func (s *Service) GetVaultSummary() (VaultSummary, error) {
 		DatabaseBytes:   size,
 		SkillCount:      skills,
 		TargetCount:     targets,
+		ProjectCount:    projects,
 		AssignmentCount: assignments,
 		PromptCount:     prompts,
 		CategoryCount:   categories,
@@ -718,13 +724,13 @@ func (s *Service) CheckDrift() ([]distribute.Report, error) {
 	return distribute.Check(s.store, vault.New(s.config.Current().VaultPath, s.store))
 }
 
-func (s *Service) RepairDrift(slug, agentID string) error {
-	_, err := distribute.Repair(s.store, vault.New(s.config.Current().VaultPath, s.store), slug, agentID)
+func (s *Service) RepairDrift(slug, targetID string) error {
+	_, err := distribute.RepairTarget(s.store, vault.New(s.config.Current().VaultPath, s.store), slug, targetID)
 	if err != nil {
 		return err
 	}
 	if s.logger != nil {
-		s.logger.Info("skill drift repaired", "slug", slug, "agent", agentID)
+		s.logger.Info("skill drift repaired", "slug", slug, "target", targetID)
 	}
 	return nil
 }

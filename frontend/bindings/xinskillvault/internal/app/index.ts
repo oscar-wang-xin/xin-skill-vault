@@ -9,6 +9,11 @@ export {
 export type {
     AppInfo,
     DistributionTarget,
+    ProjectAgentItem,
+    ProjectBulkResult,
+    ProjectItem,
+    ProjectSkill,
+    ProjectSkillAgent,
     SaveConfigResult,
     SkillAssignment,
     SkillDetail,

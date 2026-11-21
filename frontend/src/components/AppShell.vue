@@ -18,7 +18,7 @@ const nav = [
   { path: "/library", label: "技能库", icon: "library", countKey: "skillCount" },
   { path: "/market", label: "市场", icon: "market", countKey: "" },
   { path: "/agent", label: "Agent", icon: "agent", countKey: "targetCount" },
-  { path: "/projects", label: "项目", icon: "projects", countKey: "" },
+  { path: "/projects", label: "项目", icon: "projects", countKey: "projectCount" },
   { path: "/prompts", label: "提示词", icon: "prompts", countKey: "promptCount" },
 ];
 const systemNav = [{ path: "/settings", label: "设置", icon: "settings" }];

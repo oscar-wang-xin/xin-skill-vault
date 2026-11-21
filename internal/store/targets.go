@@ -101,6 +101,31 @@ func (s *Store) FindTargetByAgent(agentID string) (*TargetRecord, error) {
 	return &record, nil
 }
 
+func (s *Store) FindTargetByID(id string) (*TargetRecord, error) {
+	row := s.db.QueryRow(`
+		SELECT id, kind, agent_id, name, path, config_path, platform, enabled, detected, writable,
+			default_mode, last_scan_at, created_at
+		FROM targets WHERE id = ?`, id)
+	var record TargetRecord
+	var agent, config, platform sql.NullString
+	var enabled, detected, writable int
+	err := row.Scan(&record.ID, &record.Kind, &agent, &record.Name, &record.Path, &config,
+		&platform, &enabled, &detected, &writable, &record.DefaultMode, &record.LastScanAt, &record.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find target by id: %w", err)
+	}
+	record.AgentID = agent.String
+	record.ConfigPath = config.String
+	record.Platform = platform.String
+	record.Enabled = enabled != 0
+	record.Detected = detected != 0
+	record.Writable = writable != 0
+	return &record, nil
+}
+
 func (s *Store) FindAssignment(skillID, targetID string) (*AssignmentRecord, error) {
 	row := s.db.QueryRow(`
 		SELECT id, skill_id, target_id, mode, source_path, source_hash, installed_path,
@@ -206,6 +231,14 @@ func (s *Store) UpdateAssignmentState(id, status, installedHash string) error {
 		status, nullString(installedHash), time.Now().Unix(), id)
 	if err != nil {
 		return fmt.Errorf("update assignment state: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) UpdateTargetName(id, name string) error {
+	_, err := s.db.Exec(`UPDATE targets SET name = ? WHERE id = ?`, name, id)
+	if err != nil {
+		return fmt.Errorf("update target name: %w", err)
 	}
 	return nil
 }

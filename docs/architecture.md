@@ -62,6 +62,10 @@ Wails v3 application
 | `DistributeSkill` / `UninstallSkill` | 链接（失败降级复制）或复制分发；移除安装 |
 | `ListSkillAssignments` | 技能的分发记录 |
 | `CheckDrift` / `RepairDrift` | 检测安装件缺失/修改/仓库更新，并用仓库版本修复 |
+| `ListProjects` / `CreateProject` / `UpdateProject` / `DeleteProject` | 项目 CRUD，移除项目不删除项目目录 |
+| `SetProjectAgents` | 项目级 Agent 配置，维护 `targets(kind='project')` |
+| `ListProjectSkills` / `AddProjectSkills` / `RemoveProjectSkill` | 项目技能聚合、批量安装与移除 |
+| `PickProjectDirectory` / `OpenProjectFolder` | 项目目录选择与打开 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -82,7 +86,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 
 - [x] `wails3 build` 产出 Windows 可执行文件
 - [x] 配置/仓库/日志/数据库首次启动自动创建
-- [x] SQLite 迁移可重复执行，schema v2（含 snapshots）
+- [x] SQLite 迁移可重复执行，schema v3（含 snapshots / projects）
 - [x] Go 单元测试覆盖配置、迁移、服务摘要
 - [x] 前端 `vue-tsc` + `vite build`
 - [x] 6 个路由、主题/拟态、命令面板、配置保存
@@ -104,6 +108,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
 - 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表与修复
+- 前端项目：项目列表 + 项目详情、项目 Agent 配置、批量添加技能、项目技能表与移除
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -111,7 +116,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 junction、项目分配、批量修复
+- M2 junction、项目批量修复
 
 ## 8. 下一步
 

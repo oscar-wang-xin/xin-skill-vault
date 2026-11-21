@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, DistributionTarget, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
@@ -23,7 +23,7 @@ const demoInfo: AppInfo = {
   vaultPath: demoConfig.vaultPath,
   promptRoot: demoConfig.promptRoot,
   databasePath: "~/.skill-repo/.skillrepo/vault.db",
-  schemaVersion: 1,
+  schemaVersion: 3,
 };
 
 const demoSummary: VaultSummary = {
@@ -33,6 +33,7 @@ const demoSummary: VaultSummary = {
   databaseBytes: 0,
   skillCount: 0,
   targetCount: 0,
+  projectCount: 0,
   assignmentCount: 0,
   promptCount: 0,
   categoryCount: 0,
@@ -236,6 +237,57 @@ export async function checkDrift(): Promise<DriftReport[]> {
 export async function repairDrift(slug: string, agentID: string): Promise<void> {
   if (!(await hasBackend())) throw new Error("修复漂移需要桌面应用");
   await AppService.RepairDrift(slug, agentID);
+}
+
+
+export async function listProjects(): Promise<ProjectItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListProjects()) ?? [];
+}
+
+export async function createProject(name: string, path: string, description: string, agentIDs: string[]): Promise<ProjectItem> {
+  if (!(await hasBackend())) throw new Error("新建项目需要桌面应用");
+  return AppService.CreateProject(name, path, description, agentIDs);
+}
+
+export async function updateProject(id: string, name: string, description: string): Promise<ProjectItem> {
+  if (!(await hasBackend())) throw new Error("修改项目需要桌面应用");
+  return AppService.UpdateProject(id, name, description);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除项目需要桌面应用");
+  await AppService.DeleteProject(id);
+}
+
+export async function setProjectAgents(id: string, agentIDs: string[]): Promise<ProjectItem> {
+  if (!(await hasBackend())) throw new Error("配置项目 Agent 需要桌面应用");
+  return AppService.SetProjectAgents(id, agentIDs);
+}
+
+export async function listProjectSkills(id: string): Promise<ProjectSkill[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListProjectSkills(id)) ?? [];
+}
+
+export async function addProjectSkills(id: string, slugs: string[], mode: string): Promise<ProjectBulkResult> {
+  if (!(await hasBackend())) throw new Error("添加项目技能需要桌面应用");
+  return AppService.AddProjectSkills(id, slugs, mode);
+}
+
+export async function removeProjectSkill(id: string, slug: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("移除项目技能需要桌面应用");
+  await AppService.RemoveProjectSkill(id, slug);
+}
+
+export async function pickProjectDirectory(): Promise<string> {
+  if (!(await hasBackend())) throw new Error("选择项目目录需要桌面应用");
+  return AppService.PickProjectDirectory();
+}
+
+export async function openProjectFolder(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("打开项目目录需要桌面应用");
+  await AppService.OpenProjectFolder(id);
 }
 
 export function formatBytes(bytes: number): string {

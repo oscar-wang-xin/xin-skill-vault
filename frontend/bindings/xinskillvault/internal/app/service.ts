@@ -19,8 +19,20 @@ import * as scan$0 from "../scan/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+export function AddProjectSkills(id: string, slugs: string[] | null, mode: string): $CancellablePromise<$models.ProjectBulkResult> {
+    return $Call.ByID(4259146640, id, slugs, mode);
+}
+
 export function CheckDrift(): $CancellablePromise<distribute$0.Report[] | null> {
     return $Call.ByID(148441865);
+}
+
+export function CreateProject(name: string, path: string, description: string, agentIDs: string[] | null): $CancellablePromise<$models.ProjectItem> {
+    return $Call.ByID(2954230071, name, path, description, agentIDs);
+}
+
+export function DeleteProject(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3647281206, id);
 }
 
 export function DeleteSkill(slug: string): $CancellablePromise<void> {
@@ -67,6 +79,14 @@ export function ListDistributionTargets(slug: string): $CancellablePromise<$mode
     return $Call.ByID(3007283258, slug);
 }
 
+export function ListProjectSkills(id: string): $CancellablePromise<$models.ProjectSkill[] | null> {
+    return $Call.ByID(1463351637, id);
+}
+
+export function ListProjects(): $CancellablePromise<$models.ProjectItem[] | null> {
+    return $Call.ByID(4049605716);
+}
+
 export function ListSkillAssignments(slug: string): $CancellablePromise<$models.SkillAssignment[] | null> {
     return $Call.ByID(1685022983, slug);
 }
@@ -87,6 +107,10 @@ export function OpenConfigFolder(): $CancellablePromise<void> {
     return $Call.ByID(2847103648);
 }
 
+export function OpenProjectFolder(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1555968495, id);
+}
+
 export function OpenPromptFolder(): $CancellablePromise<void> {
     return $Call.ByID(1649222892);
 }
@@ -97,6 +121,10 @@ export function OpenSkillFolder(slug: string): $CancellablePromise<void> {
 
 export function OpenVaultFolder(): $CancellablePromise<void> {
     return $Call.ByID(4135195190);
+}
+
+export function PickProjectDirectory(): $CancellablePromise<string> {
+    return $Call.ByID(1569961059);
 }
 
 /**
@@ -117,8 +145,12 @@ export function ReadSkillDocument(slug: string): $CancellablePromise<string> {
     return $Call.ByID(1991752622, slug);
 }
 
-export function RepairDrift(slug: string, agentID: string): $CancellablePromise<void> {
-    return $Call.ByID(3231071682, slug, agentID);
+export function RemoveProjectSkill(id: string, slug: string): $CancellablePromise<void> {
+    return $Call.ByID(1724243308, id, slug);
+}
+
+export function RepairDrift(slug: string, targetID: string): $CancellablePromise<void> {
+    return $Call.ByID(3231071682, slug, targetID);
 }
 
 export function RestoreSkillSnapshot(slug: string, snapshotID: string): $CancellablePromise<$models.SkillItem> {
@@ -137,6 +169,10 @@ export function ScanAgents(): $CancellablePromise<scan$0.Result> {
     return $Call.ByID(1340619965);
 }
 
+export function SetProjectAgents(id: string, agentIDs: string[] | null): $CancellablePromise<$models.ProjectItem> {
+    return $Call.ByID(1740814841, id, agentIDs);
+}
+
 export function SetSkillEnabled(slug: string, enabled: boolean): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(58078040, slug, enabled);
 }
@@ -150,6 +186,10 @@ export function Timestamp(): $CancellablePromise<string> {
 
 export function UninstallSkill(slug: string, agentID: string): $CancellablePromise<void> {
     return $Call.ByID(1224419401, slug, agentID);
+}
+
+export function UpdateProject(id: string, name: string, description: string): $CancellablePromise<$models.ProjectItem> {
+    return $Call.ByID(2626819256, id, name, description);
 }
 
 export function UpdateScannedSkill(agentID: string, source: string): $CancellablePromise<$models.SkillItem> {

@@ -30,6 +30,49 @@ export interface DistributionTarget {
     "installedPath": string;
 }
 
+export interface ProjectAgentItem {
+    "id": string;
+    "name": string;
+    "short": string;
+    "color": string;
+    "detected": boolean;
+}
+
+export interface ProjectBulkResult {
+    "added": number;
+    "errors": string[] | null;
+}
+
+export interface ProjectItem {
+    "id": string;
+    "name": string;
+    "path": string;
+    "description": string;
+    "agents": ProjectAgentItem[] | null;
+    "skillCount": number;
+    "createdAt": number;
+    "updatedAt": number;
+}
+
+export interface ProjectSkill {
+    "slug": string;
+    "name": string;
+    "description": string;
+    "version": string;
+    "contentHash": string;
+    "agents": ProjectSkillAgent[] | null;
+}
+
+export interface ProjectSkillAgent {
+    "agentId": string;
+    "agentName": string;
+    "short": string;
+    "color": string;
+    "mode": string;
+    "status": string;
+    "installedPath": string;
+}
+
 export interface SaveConfigResult {
     "restartRequired": boolean;
 }
@@ -106,6 +149,7 @@ export interface VaultSummary {
     "skillCount": number;
     "targetCount": number;
     "assignmentCount": number;
+    "projectCount": number;
     "promptCount": number;
     "categoryCount": number;
     "schemaVersion": number;

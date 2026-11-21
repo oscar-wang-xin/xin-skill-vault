@@ -133,7 +133,7 @@ func backupDatabase(path string) error {
 	if info.Size() == 0 {
 		return nil
 	}
-	backup := fmt.Sprintf("%s.bak.%s", path, time.Now().UTC().Format("20060102T150405Z"))
+	backup := fmt.Sprintf("%s.bak.%s", path, time.Now().UTC().Format("20060102T150405.000000000Z"))
 	src, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("open database for backup: %w", err)
@@ -179,9 +179,17 @@ func (s *Store) SkillCount() (int, error) {
 
 func (s *Store) TargetCount() (int, error) {
 	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM targets WHERE enabled = 1").Scan(&count)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM targets WHERE enabled = 1 AND kind = 'agent'").Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count targets: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Store) ProjectCount() (int, error) {
+	var count int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&count); err != nil {
+		return 0, fmt.Errorf("count projects: %w", err)
 	}
 	return count, nil
 }

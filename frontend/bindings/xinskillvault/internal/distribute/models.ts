@@ -5,6 +5,7 @@ export interface Report {
     "skillSlug": string;
     "skillName": string;
     "agentId": string;
+    "targetId": string;
     "targetName": string;
     "mode": string;
     "installedPath": string;
