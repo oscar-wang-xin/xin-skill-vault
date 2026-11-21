@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"xinskillvault/internal/store"
@@ -212,5 +213,56 @@ func TestSkillEnableTrashAndSnapshotActions(t *testing.T) {
 	list, _ := v.Store.ListSkills()
 	if len(list) != 0 {
 		t.Fatalf("trashed skill still listed: %+v", list)
+	}
+}
+
+func TestReplaceFromDirectoryAndRestoreZipSnapshot(t *testing.T) {
+	root := t.TempDir()
+	source := t.TempDir()
+	writeSource := func(version string) {
+		doc := "---\nname: Replace Demo\ndescription: replace test\nversion: " + version + "\n---\n\n# " + version + "\n"
+		if err := os.WriteFile(filepath.Join(source, "SKILL.md"), []byte(doc), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(source, "notes.txt"), []byte("notes "+version), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeSource("v1")
+	st, err := store.Open(filepath.Join(root, ".skillrepo", "vault.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	v := New(root, st)
+	if _, err := v.ImportDirectory(source); err != nil {
+		t.Fatal(err)
+	}
+	writeSource("v2")
+	updated, err := v.ReplaceFromDirectory("replace-demo", source, "scan", source, "扫描更新前")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version != "v2" {
+		t.Fatalf("version = %s", updated.Version)
+	}
+	notes, err := os.ReadFile(filepath.Join(root, "skills", "replace-demo", "notes.txt"))
+	if err != nil || string(notes) != "notes v2" {
+		t.Fatalf("replacement file = %q, %v", notes, err)
+	}
+	snaps, err := v.Snapshots("replace-demo")
+	if err != nil || len(snaps) != 1 || filepath.Ext(snaps[0].FilePath) != ".zip" {
+		t.Fatalf("snapshots = %+v, %v", snaps, err)
+	}
+	if _, err := v.RestoreSnapshot("replace-demo", snaps[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := v.ReadDocument("replace-demo")
+	if err != nil || !strings.Contains(restored, "v1") {
+		t.Fatalf("restored doc = %q, %v", restored, err)
+	}
+	notes, _ = os.ReadFile(filepath.Join(root, "skills", "replace-demo", "notes.txt"))
+	if string(notes) != "notes v1" {
+		t.Fatalf("restored reference = %q", notes)
 	}
 }

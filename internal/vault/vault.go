@@ -611,6 +611,24 @@ func (v *Vault) RestoreSnapshot(slug, snapshotID string) (store.SkillRecord, err
 	if snapshot == nil {
 		return zero, fmt.Errorf("快照不存在")
 	}
+	if isZipFile(snapshot.FilePath) {
+		temp, err := os.MkdirTemp("", "xsv-restore-*")
+		if err != nil {
+			return zero, err
+		}
+		defer os.RemoveAll(temp)
+		if err := extractDirectoryArchive(snapshot.FilePath, temp); err != nil {
+			return zero, err
+		}
+		parsed, err := skill.ParseDir(temp)
+		if err != nil {
+			return zero, err
+		}
+		if parsed.Slug != record.Slug {
+			return zero, fmt.Errorf("快照的 slug 与当前技能不一致")
+		}
+		return v.ReplaceFromDirectory(slug, temp, "", "", "恢复快照")
+	}
 	data, err := os.ReadFile(snapshot.FilePath)
 	if err != nil {
 		return zero, fmt.Errorf("read snapshot: %w", err)
@@ -648,4 +666,251 @@ func FingerprintDir(root string) (string, int64, int, error) {
 // CopyDir copies a skill tree into an empty target, skipping ignored metadata.
 func CopyDir(source, target string) error {
 	return copyTree(source, target)
+}
+
+// ReplaceFromDirectory replaces a vault skill with a directory after snapshotting the old tree.
+func (v *Vault) ReplaceFromDirectory(slug, source, sourceType, sourceRef, note string) (store.SkillRecord, error) {
+	var zero store.SkillRecord
+	record, err := v.Store.FindSkillBySlug(slug)
+	if err != nil {
+		return zero, err
+	}
+	if record == nil {
+		return zero, fmt.Errorf("技能不存在：%s", slug)
+	}
+	sourceAbs, err := filepath.Abs(source)
+	if err != nil {
+		return zero, err
+	}
+	if within(v.Root, sourceAbs) {
+		return zero, fmt.Errorf("不能从仓库内部替换技能")
+	}
+	parsed, err := skill.ParseDir(sourceAbs)
+	if err != nil {
+		return zero, err
+	}
+	if parsed.Slug != record.Slug {
+		return zero, fmt.Errorf("技能 slug 不一致：%s", parsed.Slug)
+	}
+	hash, _, _, err := hashTree(sourceAbs)
+	if err != nil {
+		return zero, err
+	}
+	if hash == record.ContentHash {
+		return *record, nil
+	}
+	dir, err := v.SkillDir(slug)
+	if err != nil {
+		return zero, err
+	}
+	if _, err := os.Stat(dir); err != nil {
+		return zero, fmt.Errorf("仓库技能目录不存在: %w", err)
+	}
+	snapshotDir := filepath.Join(v.Root, ".skillrepo", "snapshots", slug)
+	if err := os.MkdirAll(snapshotDir, 0o700); err != nil {
+		return zero, fmt.Errorf("create snapshot dir: %w", err)
+	}
+	snapshotID := newID()
+	snapshotPath := filepath.Join(snapshotDir, snapshotID+".zip")
+	if err := zipDirectory(dir, snapshotPath); err != nil {
+		return zero, err
+	}
+	cleanupSnapshot := func() { _ = os.Remove(snapshotPath) }
+	cacheDir := filepath.Join(v.Root, ".skillrepo", "cache")
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+		cleanupSnapshot()
+		return zero, err
+	}
+	tempNew, err := os.MkdirTemp(cacheDir, "replace-new-*")
+	if err != nil {
+		cleanupSnapshot()
+		return zero, err
+	}
+	cleanupNew := func() { _ = os.RemoveAll(tempNew) }
+	if err := copyTree(sourceAbs, tempNew); err != nil {
+		cleanupNew()
+		cleanupSnapshot()
+		return zero, err
+	}
+	backup := filepath.Join(cacheDir, "replace-old-"+newID())
+	if err := os.Rename(dir, backup); err != nil {
+		cleanupNew()
+		cleanupSnapshot()
+		return zero, fmt.Errorf("move old skill aside: %w", err)
+	}
+	restoreOld := func() {
+		_ = os.RemoveAll(dir)
+		_ = os.Rename(backup, dir)
+	}
+	if err := os.Rename(tempNew, dir); err != nil {
+		restoreOld()
+		cleanupSnapshot()
+		return zero, fmt.Errorf("move replacement into vault: %w", err)
+	}
+	parsedNext, err := skill.ParseDir(dir)
+	if err != nil {
+		restoreOld()
+		_ = os.RemoveAll(dir)
+		cleanupSnapshot()
+		return zero, err
+	}
+	nextHash, nextSize, nextCount, err := hashTree(dir)
+	if err != nil {
+		restoreOld()
+		cleanupSnapshot()
+		return zero, err
+	}
+	updated := *record
+	updated.Name = parsedNext.Meta.Name
+	updated.Description = parsedNext.Meta.Description
+	updated.Version = parsedNext.Meta.Version
+	updated.Author = parsedNext.Meta.Author
+	updated.License = parsedNext.Meta.License
+	updated.Icon = parsedNext.Meta.Icon
+	updated.ContentHash = nextHash
+	updated.SizeBytes = nextSize
+	updated.FileCount = nextCount
+	if sourceType != "" {
+		updated.SourceType = sourceType
+	}
+	if sourceRef != "" {
+		updated.SourceRef = sourceRef
+	}
+	updated.UpdatedAt = time.Now().Unix()
+	snapshot := store.SnapshotRecord{
+		ID: snapshotID, SkillID: updated.ID, ContentHash: record.ContentHash,
+		FilePath: snapshotPath, Note: note, CreatedAt: updated.UpdatedAt,
+	}
+	if err := v.Store.UpdateSkillWithSnapshot(updated, snapshot); err != nil {
+		restoreOld()
+		cleanupSnapshot()
+		return zero, err
+	}
+	_ = os.RemoveAll(backup)
+	return updated, nil
+}
+
+func isZipFile(path string) bool {
+	file, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	header := make([]byte, 4)
+	if _, err := io.ReadFull(file, header); err != nil {
+		return false
+	}
+	return header[0] == 'P' && header[1] == 'K' && header[2] == 3 && header[3] == 4
+}
+
+func zipDirectory(source, dest string) error {
+	file, err := os.OpenFile(dest, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("create snapshot archive: %w", err)
+	}
+	archive := zip.NewWriter(file)
+	writeErr := filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if ignoredNames[entry.Name()] {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." || entry.IsDir() {
+			return nil
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		writer, err := archive.Create(filepath.ToSlash(rel))
+		if err != nil {
+			return err
+		}
+		input, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(writer, input)
+		closeErr := input.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
+	})
+	if writeErr != nil {
+		archive.Close()
+		file.Close()
+		_ = os.Remove(dest)
+		return fmt.Errorf("write snapshot archive: %w", writeErr)
+	}
+	if err := archive.Close(); err != nil {
+		file.Close()
+		_ = os.Remove(dest)
+		return err
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(dest)
+		return err
+	}
+	return nil
+}
+
+func extractDirectoryArchive(archivePath, dest string) error {
+	reader, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return fmt.Errorf("open snapshot archive: %w", err)
+	}
+	defer reader.Close()
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	for _, entry := range reader.File {
+		name, err := safeArchiveName(entry.Name)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, filepath.FromSlash(name))
+		if !within(dest, target) {
+			return fmt.Errorf("快照包含越界路径：%s", entry.Name)
+		}
+		if entry.FileInfo().IsDir() {
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		in, err := entry.Open()
+		if err != nil {
+			return err
+		}
+		out, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		if err != nil {
+			in.Close()
+			return err
+		}
+		_, copyErr := io.Copy(out, in)
+		in.Close()
+		out.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+	}
+	return nil
 }

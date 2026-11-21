@@ -140,3 +140,7 @@ export function Timestamp(): $CancellablePromise<string> {
 export function UninstallSkill(slug: string, agentID: string): $CancellablePromise<void> {
     return $Call.ByID(1224419401, slug, agentID);
 }
+
+export function UpdateScannedSkill(agentID: string, source: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(1413130990, agentID, source);
+}

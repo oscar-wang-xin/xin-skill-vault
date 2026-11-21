@@ -220,6 +220,12 @@ export async function listSkillAssignments(slug: string): Promise<SkillAssignmen
   return (await AppService.ListSkillAssignments(slug)) ?? [];
 }
 
+
+export async function updateScannedSkill(agentID: string, source: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("更新扫描技能需要桌面应用");
+  return AppService.UpdateScannedSkill(agentID, source);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

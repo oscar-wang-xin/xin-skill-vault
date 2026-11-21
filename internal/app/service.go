@@ -673,3 +673,43 @@ func (s *Service) assignmentDTO(record *store.SkillRecord, target store.TargetRe
 		InstalledPath: assignment.InstalledPath, Status: assignment.Status, UpdatedAt: assignment.UpdatedAt,
 	}
 }
+
+func (s *Service) UpdateScannedSkill(agentID, source string) (SkillItem, error) {
+	adapters := agent.Defaults()
+	var found *agent.Adapter
+	for i := range adapters {
+		if adapters[i].ID == agentID {
+			found = &adapters[i]
+			break
+		}
+	}
+	if found == nil || !found.Detected {
+		return SkillItem{}, fmt.Errorf("Agent 不存在或未检测到")
+	}
+	abs, err := filepath.Abs(source)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if !withinPath(found.Path, abs) {
+		return SkillItem{}, fmt.Errorf("技能路径不在该 Agent 目录内")
+	}
+	parsed, err := skill.ParseDir(abs)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if record, err := s.store.FindSkillBySlug(parsed.Slug); err != nil {
+		return SkillItem{}, err
+	} else if record == nil {
+		return SkillItem{}, fmt.Errorf("技能尚未导入，请先导入")
+	}
+	record, err := vault.New(s.config.Current().VaultPath, s.store).ReplaceFromDirectory(
+		parsed.Slug, abs, "scan", abs, "扫描更新前",
+	)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if s.logger != nil {
+		s.logger.Info("scanned skill updated", "slug", record.Slug, "agent", agentID)
+	}
+	return skillItem(record), nil
+}

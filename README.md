@@ -3,7 +3,7 @@
 **One vault for every AI agent skill on your machine.**
 一个仓库，统一管理本机所有 AI Agent 的 skill：导入、编辑、分组、分发、追踪、回滚。
 
-> 当前阶段：**M2 进行中**：M1 仓库/导入/编辑/快照已完成；本机 Agent 检测、扫描 Finding、发现页、单技能分发（链接/复制）已接通；覆盖更新与漂移检测待接入。
+> 当前阶段：**M2 进行中**：M1 仓库/导入/编辑/快照已完成；本机 Agent 检测、扫描 Finding、发现页、覆盖更新、单技能分发（链接/复制）已接通；批量分发与漂移检测待接入。
 
 ---
 
@@ -129,7 +129,7 @@ wails3 build
 
 - **Agent 适配器**：内置 Claude Code、Codex、Cursor、OpenCode、WorkBuddy、DeepSeek Harness、Alma、CodeBuddy、Reasonix、Universal、Cherry Studio 的默认 skill 目录与自动检测。
 - **扫描 Finding**：扫描每个已检测目标的单层技能目录，比对仓库 hash，输出「未导入 / 有变更」，跳过无 SKILL.md 或非法 frontmatter 的目录并记录错误。
-- **发现页**：真实扫描结果、状态筛选、扫描时间/目标/技能计数、单条导入。
+- **发现页**：真实扫描结果、状态筛选、扫描时间/目标/技能计数、单条导入、覆盖更新（先写完整目录 zip 快照）。
 - **Agent 页**：目标检测状态、路径、扫描技能数、打开目录。
 - **单技能分发**：详情抽屉选择已检测 Agent，链接（失败自动复制）或复制安装；写入 `assignments` 与可复制的 `.skillrepo-manifest.json`；支持移除。
 - **分发计数**：技能卡片/列表显示已分发 Agent 数，仓库筛选「已分发 / 未分发」接真实数据。
@@ -144,7 +144,7 @@ wails3 build
 - **技能生命周期**：启用/禁用；删除移动到 `.skillrepo/trash` 并软删除索引（30 天保留约定）。
 - **示例技能**：`examples/demo-skill/`，可直接在应用里导入试用。
 - **M1 尚未完成**：URL 导入、回收站恢复界面。
-- **M2 尚未完成**：扫描结果覆盖更新、junction、批量分发、项目分配、漂移检测。
+- **M2 尚未完成**：junction、批量分发、项目分配、漂移检测。
 - **后续**：市场、组合、提示词、Bundle。
 
 ### M0 已落地

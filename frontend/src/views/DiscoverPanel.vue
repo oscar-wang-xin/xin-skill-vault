@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
-import { errorMessage, formatBytes, importScannedSkill, scanAgents } from "../lib/api";
+import { errorMessage, formatBytes, importScannedSkill, scanAgents, updateScannedSkill } from "../lib/api";
 import type { Finding, Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import { useVaultStore } from "../stores/vault";
 
@@ -10,6 +10,7 @@ const vault = useVaultStore();
 const result = ref<ScanResult | null>(null);
 const scanning = ref(false);
 const importing = ref("");
+const updating = ref("");
 const filter = ref<"all" | "new" | "changed" | "ignored">("all");
 const toast = ref("");
 let toastTimer: number | undefined;
@@ -43,7 +44,7 @@ async function scan() {
 }
 
 async function importFinding(finding: Finding) {
-  if (importing.value || finding.status !== "new") return;
+  if (importing.value || updating.value || finding.status !== "new") return;
   importing.value = finding.key;
   try {
     const item = await importScannedSkill(finding.agentId, finding.path);
@@ -55,6 +56,22 @@ async function importFinding(finding: Finding) {
     showToast(errorMessage(error));
   } finally {
     importing.value = "";
+  }
+}
+
+async function updateFinding(finding: Finding) {
+  if (importing.value || updating.value || finding.status !== "changed") return;
+  updating.value = finding.key;
+  try {
+    const item = await updateScannedSkill(finding.agentId, finding.path);
+    await vault.refresh();
+    await scan();
+    emit("imported");
+    showToast(`已更新：${item.name}（旧版本已写入快照）`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    updating.value = "";
   }
 }
 
@@ -142,7 +159,14 @@ onMounted(scan);
           >
             {{ importing === finding.key ? "导入中…" : "导入" }}
           </button>
-          <span v-else class="badge" title="覆盖更新将在 M2.2 接入">待更新</span>
+          <button
+            v-else
+            class="btn sm"
+            :disabled="!!importing || !!updating"
+            @click="updateFinding(finding)"
+          >
+            {{ updating === finding.key ? "更新中…" : "更新" }}
+          </button>
         </div>
       </div>
     </div>

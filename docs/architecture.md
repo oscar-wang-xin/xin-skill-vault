@@ -56,7 +56,7 @@ Wails v3 application
 | `RestoreSkillSnapshot` / `DeleteSkillSnapshot` | 恢复/删除历史快照（恢复前会再写快照） |
 | `OpenSkillFolder` | 打开单个技能目录 |
 | `ScanAgents` | 检测 Agent 目录、扫描技能并返回 Finding |
-| `ImportScannedSkill` | 从扫描结果导入单个技能（来源记为 scan） |
+| `ImportScannedSkill` / `UpdateScannedSkill` | 从扫描结果导入/覆盖更新（覆盖前写完整目录 zip 快照） |
 | `OpenAgentFolder` | 打开 Agent skill 目录 |
 | `ListDistributionTargets` | 确保 Agent target 入库，返回检测/已分发状态 |
 | `DistributeSkill` / `UninstallSkill` | 链接（失败降级复制）或复制分发；移除安装 |
@@ -97,9 +97,10 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
 - `internal/agent`：11 个内置 Agent 适配器与目录检测
 - `internal/scan`：单层技能扫描、hash 比对、new/changed Finding、错误收集
+- `internal/vault` 覆盖更新：目录 zip 快照、原子替换、快照恢复（文件/目录两种格式）
 - `internal/distribute`：Agent 目录安装/移除，链接失败自动复制，`.skillrepo-manifest.json`
 - 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
-- 前端发现页 / Agent 页：真实扫描、筛选、导入、目录打开
+- 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
 - 前端分发弹层：多 Agent 选择、链接/复制模式、移除；详情抽屉入口
 - 示例：`examples/demo-skill/`
 
@@ -112,8 +113,8 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 
 ## 8. 下一步
 
-1. 扫描结果的覆盖更新（先生成快照再替换）。
-2. junction 与批量分发、按项目分发。
+1. 批量分发与组合分发。
+2. 项目模块与按 Agent 分配。
 3. 漂移检测与批量修复。
 4. 市场与提示词。
 
