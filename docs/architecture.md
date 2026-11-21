@@ -71,6 +71,9 @@ Wails v3 application
 | `ListMarketCategories` / `AuditMarketSkill` | SkillHub 分类；安装包脚本/危险命令审计 |
 | `ListCombos` / `CreateCombo` / `UpdateCombo` / `DeleteCombo` | 组合 CRUD 与技能引用 |
 | `ListComboSkills` | 组合内技能，用于一键分发 |
+| `ListPromptCategories` / `CreatePromptCategory` / `UpdatePromptCategory` / `DeletePromptCategory` | 提示词分类与目录 |
+| `ListPrompts` / `CreatePrompt` / `GetPrompt` / `SavePrompt` / `DeletePrompt` | 提示词与 `.md` 版本文件 |
+| `GetPromptVersion` / `DeletePromptVersion` | 读取/删除版本，当前版本删除后自动切换 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：

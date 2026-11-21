@@ -42,12 +42,32 @@ export function CreateProject(name: string, path: string, description: string, a
     return $Call.ByID(2954230071, name, path, description, agentIDs);
 }
 
+export function CreatePrompt(title: string, categoryID: string, tags: string[] | null, content: string): $CancellablePromise<$models.PromptDetail> {
+    return $Call.ByID(3404380780, title, categoryID, tags, content);
+}
+
+export function CreatePromptCategory(name: string, parentID: string, dirPath: string): $CancellablePromise<$models.PromptCategoryItem> {
+    return $Call.ByID(4220875460, name, parentID, dirPath);
+}
+
 export function DeleteCombo(id: string): $CancellablePromise<void> {
     return $Call.ByID(3107817225, id);
 }
 
 export function DeleteProject(id: string): $CancellablePromise<void> {
     return $Call.ByID(3647281206, id);
+}
+
+export function DeletePrompt(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3294388131, id);
+}
+
+export function DeletePromptCategory(id: string): $CancellablePromise<void> {
+    return $Call.ByID(4037140647, id);
+}
+
+export function DeletePromptVersion(id: string, version: number): $CancellablePromise<$models.PromptDetail> {
+    return $Call.ByID(4019336861, id, version);
 }
 
 export function DeleteSkill(slug: string): $CancellablePromise<void> {
@@ -68,6 +88,14 @@ export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
 
 export function GetConfig(): $CancellablePromise<config$0.Config> {
     return $Call.ByID(911638184);
+}
+
+export function GetPrompt(id: string): $CancellablePromise<$models.PromptDetail> {
+    return $Call.ByID(3620182468, id);
+}
+
+export function GetPromptVersion(id: string, version: number): $CancellablePromise<string> {
+    return $Call.ByID(4031322904, id, version);
 }
 
 export function GetSkillDetail(slug: string): $CancellablePromise<$models.SkillDetail | null> {
@@ -120,6 +148,14 @@ export function ListProjectSkills(id: string): $CancellablePromise<$models.Proje
 
 export function ListProjects(): $CancellablePromise<$models.ProjectItem[] | null> {
     return $Call.ByID(4049605716);
+}
+
+export function ListPromptCategories(): $CancellablePromise<$models.PromptCategoryItem[] | null> {
+    return $Call.ByID(3954888312);
+}
+
+export function ListPrompts(category: string): $CancellablePromise<$models.PromptItem[] | null> {
+    return $Call.ByID(1340076645, category);
 }
 
 export function ListSkillAssignments(slug: string): $CancellablePromise<$models.SkillAssignment[] | null> {
@@ -200,6 +236,10 @@ export function SaveConfig(next: config$0.Config): $CancellablePromise<$models.S
     return $Call.ByID(1613918349, next);
 }
 
+export function SavePrompt(id: string, title: string, categoryID: string, tags: string[] | null, content: string): $CancellablePromise<$models.PromptDetail> {
+    return $Call.ByID(2102101877, id, title, categoryID, tags, content);
+}
+
 export function SaveSkillDocument(slug: string, content: string, note: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1775529333, slug, content, note);
 }
@@ -237,6 +277,10 @@ export function UpdateCombo(id: string, name: string, description: string, icon:
 
 export function UpdateProject(id: string, name: string, description: string): $CancellablePromise<$models.ProjectItem> {
     return $Call.ByID(2626819256, id, name, description);
+}
+
+export function UpdatePromptCategory(id: string, name: string): $CancellablePromise<$models.PromptCategoryItem> {
+    return $Call.ByID(405792485, id, name);
 }
 
 export function UpdateScannedSkill(agentID: string, source: string): $CancellablePromise<$models.SkillItem> {

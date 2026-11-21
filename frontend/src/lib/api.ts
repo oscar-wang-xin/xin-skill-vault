@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
@@ -348,6 +348,62 @@ export async function deleteCombo(id: string): Promise<void> {
 export async function listComboSkills(id: string): Promise<ComboSkillItem[]> {
   if (!(await hasBackend())) return [];
   return (await AppService.ListComboSkills(id)) ?? [];
+}
+
+
+export async function listPromptCategories(): Promise<PromptCategoryItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListPromptCategories()) ?? [];
+}
+
+export async function createPromptCategory(name: string, parentID: string, dirPath: string): Promise<PromptCategoryItem> {
+  if (!(await hasBackend())) throw new Error("新建分类需要桌面应用");
+  return AppService.CreatePromptCategory(name, parentID, dirPath);
+}
+
+export async function updatePromptCategory(id: string, name: string): Promise<PromptCategoryItem> {
+  if (!(await hasBackend())) throw new Error("编辑分类需要桌面应用");
+  return AppService.UpdatePromptCategory(id, name);
+}
+
+export async function deletePromptCategory(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除分类需要桌面应用");
+  await AppService.DeletePromptCategory(id);
+}
+
+export async function listPrompts(category = "all"): Promise<PromptItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListPrompts(category)) ?? [];
+}
+
+export async function createPrompt(title: string, categoryID: string, tags: string[], content: string): Promise<PromptDetail> {
+  if (!(await hasBackend())) throw new Error("新建提示词需要桌面应用");
+  return AppService.CreatePrompt(title, categoryID, tags, content);
+}
+
+export async function getPrompt(id: string): Promise<PromptDetail> {
+  if (!(await hasBackend())) throw new Error("读取提示词需要桌面应用");
+  return AppService.GetPrompt(id);
+}
+
+export async function savePrompt(id: string, title: string, categoryID: string, tags: string[], content: string): Promise<PromptDetail> {
+  if (!(await hasBackend())) throw new Error("保存提示词需要桌面应用");
+  return AppService.SavePrompt(id, title, categoryID, tags, content);
+}
+
+export async function getPromptVersion(id: string, version: number): Promise<string> {
+  if (!(await hasBackend())) throw new Error("读取版本需要桌面应用");
+  return AppService.GetPromptVersion(id, version);
+}
+
+export async function deletePromptVersion(id: string, version: number): Promise<PromptDetail> {
+  if (!(await hasBackend())) throw new Error("删除版本需要桌面应用");
+  return AppService.DeletePromptVersion(id, version);
+}
+
+export async function deletePrompt(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除提示词需要桌面应用");
+  await AppService.DeletePrompt(id);
 }
 
 export function formatBytes(bytes: number): string {

@@ -92,6 +92,51 @@ export interface ProjectSkillAgent {
     "installedPath": string;
 }
 
+export interface PromptCategoryItem {
+    "id": string;
+    "name": string;
+    "parentId": string;
+    "dirPath": string;
+    "sortOrder": number;
+    "createdAt": number;
+}
+
+export interface PromptDetail {
+    "id": string;
+    "title": string;
+    "categoryId": string;
+    "categoryName": string;
+    "tags": string[] | null;
+    "currentVersion": number;
+    "contentHash": string;
+    "createdAt": number;
+    "updatedAt": number;
+    "content": string;
+    "versions": PromptVersionItem[] | null;
+}
+
+export interface PromptItem {
+    "id": string;
+    "title": string;
+    "categoryId": string;
+    "categoryName": string;
+    "tags": string[] | null;
+    "currentVersion": number;
+    "contentHash": string;
+    "createdAt": number;
+    "updatedAt": number;
+}
+
+export interface PromptVersionItem {
+    "version": number;
+    "title": string;
+    "categoryId": string;
+    "categoryName": string;
+    "tags": string[] | null;
+    "note": string;
+    "createdAt": number;
+}
+
 export interface RepairSummary {
     "repaired": number;
     "errors": string[] | null;
