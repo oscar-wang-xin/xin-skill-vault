@@ -61,6 +61,7 @@ Wails v3 application
 | `ListDistributionTargets` | 确保 Agent target 入库，返回检测/已分发状态 |
 | `DistributeSkill` / `UninstallSkill` | 链接（失败降级复制）或复制分发；移除安装 |
 | `ListSkillAssignments` | 技能的分发记录 |
+| `CheckDrift` / `RepairDrift` | 检测安装件缺失/修改/仓库更新，并用仓库版本修复 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -102,6 +103,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
 - 前端发现页 / Agent 页：真实扫描、筛选、导入、覆盖更新、目录打开
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
+- 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表与修复
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -109,7 +111,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 junction、项目分配、漂移检测
+- M2 junction、项目分配、批量修复
 
 ## 8. 下一步
 

@@ -713,3 +713,18 @@ func (s *Service) UpdateScannedSkill(agentID, source string) (SkillItem, error) 
 	}
 	return skillItem(record), nil
 }
+
+func (s *Service) CheckDrift() ([]distribute.Report, error) {
+	return distribute.Check(s.store, vault.New(s.config.Current().VaultPath, s.store))
+}
+
+func (s *Service) RepairDrift(slug, agentID string) error {
+	_, err := distribute.Repair(s.store, vault.New(s.config.Current().VaultPath, s.store), slug, agentID)
+	if err != nil {
+		return err
+	}
+	if s.logger != nil {
+		s.logger.Info("skill drift repaired", "slug", slug, "agent", agentID)
+	}
+	return nil
+}

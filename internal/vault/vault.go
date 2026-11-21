@@ -256,6 +256,12 @@ func hashTree(root string) (string, int64, int, error) {
 		if walkErr != nil {
 			return walkErr
 		}
+		if ignoredNames[entry.Name()] {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 		if entry.IsDir() || !entry.Type().IsRegular() {
 			return nil
 		}

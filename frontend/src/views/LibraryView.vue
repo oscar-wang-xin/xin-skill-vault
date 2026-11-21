@@ -4,6 +4,7 @@ import Icon from "../components/Icon.vue";
 import DiscoverPanel from "./DiscoverPanel.vue";
 import DistributeModal from "./DistributeModal.vue";
 import {
+  checkDrift,
   errorMessage,
   formatBytes,
   deleteSkill,
@@ -23,6 +24,7 @@ import {
   setSkillEnabled,
 } from "../lib/api";
 import type { SkillDetail, SkillItem, SnapshotItem } from "../../bindings/xinskillvault/internal/app/models";
+import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import { useVaultStore } from "../stores/vault";
 
 type Tab = "mine" | "scan" | "groups";
@@ -49,6 +51,7 @@ const actionBusy = ref(false);
 const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; message: string; snapshotId?: string }>(null);
 const distributeOpen = ref(false);
 const distributeItems = ref<{ slug: string; name: string }[]>([]);
+const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 let toastTimer: number | undefined;
@@ -69,11 +72,24 @@ const sourceLabel: Record<string, string> = {
   ai: "自建",
 };
 
+const driftBySlug = computed(() => {
+  const map = new Map<string, DriftReport[]>();
+  for (const report of driftReports.value) {
+    if (report.status === "ok") continue;
+    const list = map.get(report.skillSlug) ?? [];
+    list.push(report);
+    map.set(report.skillSlug, list);
+  }
+  return map;
+});
+
+const driftSlugs = computed(() => new Set(driftBySlug.value.keys()));
+
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
   let list = skills.value.filter((item) => {
     if (filter.value === "disabled" && item.enabled) return false;
-    if (filter.value === "update") return false;
+    if (filter.value === "update") return !driftSlugs.value.has(item.slug);
     if (filter.value === "distributed" && item.assignedCount === 0) return false;
     if (filter.value === "none" && item.assignedCount > 0) return false;
     if (!q) return true;
@@ -97,7 +113,7 @@ const filters = computed(() => [
   { id: "all", label: "全部", count: skills.value.length },
   { id: "distributed", label: "已分发", count: skills.value.filter((item) => item.assignedCount > 0).length },
   { id: "none", label: "未分发", count: skills.value.filter((item) => item.assignedCount === 0).length },
-  { id: "update", label: "有更新", count: 0 },
+  { id: "update", label: "有更新", count: driftSlugs.value.size },
   { id: "disabled", label: "已禁用", count: skills.value.filter((item) => !item.enabled).length },
 ]);
 
@@ -132,10 +148,22 @@ async function loadSkills() {
   }
 }
 
+async function loadDrift() {
+  try {
+    driftReports.value = await checkDrift();
+  } catch {
+    driftReports.value = [];
+  }
+}
+
+async function onImported() {
+  await Promise.all([loadSkills(), loadDrift(), vault.refresh()]);
+}
+
 async function refresh() {
   if (refreshing.value) return;
   refreshing.value = true;
-  await Promise.all([vault.refresh(), loadSkills()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
   refreshing.value = false;
   showToast("已刷新本地仓库");
 }
@@ -155,7 +183,7 @@ async function importSkill() {
     const source = await pickSkillDirectory();
     if (!source) return;
     const item = await importSkillDirectory(source);
-    await Promise.all([vault.refresh(), loadSkills()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
     showToast(`已导入：${item.name}`);
   } catch (error) {
     showToast(errorMessage(error));
@@ -171,7 +199,7 @@ async function importArchive() {
     const archive = await pickSkillArchive();
     if (!archive) return;
     const item = await importSkillArchive(archive);
-    await Promise.all([vault.refresh(), loadSkills()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
     showToast(`已导入压缩包：${item.name}`);
   } catch (error) {
     showToast(errorMessage(error));
@@ -200,7 +228,7 @@ async function saveEdit() {
   savingEdit.value = true;
   try {
     await saveSkillDocument(activeSlug.value, draft.value, "编辑前");
-    await Promise.all([vault.refresh(), loadSkills()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
     const [nextDetail, nextSnapshots] = await Promise.all([
       getSkillDetail(activeSlug.value),
       listSkillSnapshots(activeSlug.value),
@@ -258,7 +286,7 @@ async function runConfirmAction() {
       await deleteSkill(activeSlug.value);
       confirmAction.value = null;
       closeDetail();
-      await Promise.all([vault.refresh(), loadSkills()]);
+      await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
       showToast("技能已移入回收站");
     } else if (action.snapshotId) {
       await deleteSkillSnapshot(activeSlug.value, action.snapshotId);
@@ -284,7 +312,7 @@ async function restoreSnapshot(snapshot: SnapshotItem) {
     ]);
     detail.value = nextDetail;
     snapshots.value = nextSnapshots;
-    await loadSkills();
+    await Promise.all([loadSkills(), loadDrift()]);
     showToast("已恢复快照，并保存了恢复前的版本");
   } catch (error) {
     showToast(errorMessage(error));
@@ -310,7 +338,7 @@ function openBatchDistribute() {
 }
 
 async function onDistributed() {
-  await Promise.all([vault.refresh(), loadSkills()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
   if (activeSlug.value) {
     try {
       detail.value = await getSkillDetail(activeSlug.value);
@@ -393,7 +421,7 @@ function onKeydown(event: KeyboardEvent) {
 
 onMounted(async () => {
   window.addEventListener("keydown", onKeydown);
-  await Promise.all([vault.refresh(), loadSkills()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", onKeydown);
@@ -528,6 +556,7 @@ onUnmounted(() => {
           <div class="sc-meta">
             <span class="badge" :class="{ accent: item.enabled }">{{ item.enabled ? "启用" : "禁用" }}</span>
             <span v-if="item.assignedCount" class="badge">{{ item.assignedCount }} 个分发</span>
+            <span v-if="driftSlugs.has(item.slug)" class="badge warn" :title="driftBySlug.get(item.slug)?.map((report) => report.status).join(' / ')">漂移</span>
             <span class="badge">{{ sourceLabel[item.sourceType] ?? item.sourceType }}</span>
             <span v-if="item.version" class="mono">v{{ item.version }}</span>
             <span class="grow" />
@@ -563,6 +592,7 @@ onUnmounted(() => {
             <span><b>{{ item.name }}</b><em>{{ item.description }}</em></span>
           </span>
           <span class="badge" :class="{ accent: item.enabled }">{{ item.enabled ? "启用" : "禁用" }}{{ item.assignedCount ? ` · ${item.assignedCount}` : "" }}</span>
+          <span v-if="driftSlugs.has(item.slug)" class="badge warn">漂移</span>
           <span class="badge">{{ sourceLabel[item.sourceType] ?? item.sourceType }}</span>
           <span class="mono">{{ item.version || "—" }}</span>
           <span>{{ item.fileCount }}</span>
@@ -571,7 +601,7 @@ onUnmounted(() => {
       </div>
     </template>
 
-    <DiscoverPanel v-else-if="tab === 'scan'" @imported="loadSkills" />
+    <DiscoverPanel v-else-if="tab === 'scan'" @imported="onImported" />
 
     <div v-else class="empty">
       <div class="empty-ico"><Icon name="layers" :size="18" /></div>

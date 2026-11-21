@@ -1,6 +1,7 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
 import type { AppInfo, DistributionTarget, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
+import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -224,6 +225,17 @@ export async function listSkillAssignments(slug: string): Promise<SkillAssignmen
 export async function updateScannedSkill(agentID: string, source: string): Promise<SkillItem> {
   if (!(await hasBackend())) throw new Error("更新扫描技能需要桌面应用");
   return AppService.UpdateScannedSkill(agentID, source);
+}
+
+
+export async function checkDrift(): Promise<DriftReport[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.CheckDrift()) ?? [];
+}
+
+export async function repairDrift(slug: string, agentID: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("修复漂移需要桌面应用");
+  await AppService.RepairDrift(slug, agentID);
 }
 
 export function formatBytes(bytes: number): string {

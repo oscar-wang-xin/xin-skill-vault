@@ -10,11 +10,18 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as config$0 from "../config/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as distribute$0 from "../distribute/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as scan$0 from "../scan/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+export function CheckDrift(): $CancellablePromise<distribute$0.Report[] | null> {
+    return $Call.ByID(148441865);
+}
 
 export function DeleteSkill(slug: string): $CancellablePromise<void> {
     return $Call.ByID(3643838446, slug);
@@ -108,6 +115,10 @@ export function PickSkillDirectory(): $CancellablePromise<string> {
 
 export function ReadSkillDocument(slug: string): $CancellablePromise<string> {
     return $Call.ByID(1991752622, slug);
+}
+
+export function RepairDrift(slug: string, agentID: string): $CancellablePromise<void> {
+    return $Call.ByID(3231071682, slug, agentID);
 }
 
 export function RestoreSkillSnapshot(slug: string, snapshotID: string): $CancellablePromise<$models.SkillItem> {

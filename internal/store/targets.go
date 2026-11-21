@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type TargetRecord struct {
@@ -167,6 +168,44 @@ func (s *Store) DeleteAssignment(id string) error {
 	_, err := s.db.Exec(`DELETE FROM assignments WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete assignment: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) ListTargets() ([]TargetRecord, error) {
+	rows, err := s.db.Query(`
+		SELECT id, kind, agent_id, name, path, config_path, platform, enabled, detected, writable,
+			default_mode, last_scan_at, created_at
+		FROM targets ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("list targets: %w", err)
+	}
+	defer rows.Close()
+	var out []TargetRecord
+	for rows.Next() {
+		var record TargetRecord
+		var agent, config, platform sql.NullString
+		var enabled, detected, writable int
+		if err := rows.Scan(&record.ID, &record.Kind, &agent, &record.Name, &record.Path, &config,
+			&platform, &enabled, &detected, &writable, &record.DefaultMode, &record.LastScanAt, &record.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan target: %w", err)
+		}
+		record.AgentID = agent.String
+		record.ConfigPath = config.String
+		record.Platform = platform.String
+		record.Enabled = enabled != 0
+		record.Detected = detected != 0
+		record.Writable = writable != 0
+		out = append(out, record)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) UpdateAssignmentState(id, status, installedHash string) error {
+	_, err := s.db.Exec(`UPDATE assignments SET status = ?, installed_hash = ?, updated_at = ? WHERE id = ?`,
+		status, nullString(installedHash), time.Now().Unix(), id)
+	if err != nil {
+		return fmt.Errorf("update assignment state: %w", err)
 	}
 	return nil
 }
