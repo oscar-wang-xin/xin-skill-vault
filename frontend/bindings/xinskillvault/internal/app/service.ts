@@ -78,6 +78,10 @@ export function DeleteSkillSnapshot(slug: string, snapshotID: string): $Cancella
     return $Call.ByID(879356562, slug, snapshotID);
 }
 
+export function DeleteTag(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2958083659, id);
+}
+
 export function DistributeSkill(slug: string, agentID: string, mode: string): $CancellablePromise<$models.SkillAssignment> {
     return $Call.ByID(210925762, slug, agentID, mode);
 }
@@ -182,6 +186,10 @@ export function ListTags(): $CancellablePromise<$models.TagItem[] | null> {
     return $Call.ByID(2389791015);
 }
 
+export function MergeTags(sourceID: string, targetID: string): $CancellablePromise<void> {
+    return $Call.ByID(2615397827, sourceID, targetID);
+}
+
 export function OpenAgentFolder(agentID: string): $CancellablePromise<void> {
     return $Call.ByID(669917403, agentID);
 }
@@ -230,6 +238,10 @@ export function ReadSkillDocument(slug: string): $CancellablePromise<string> {
 
 export function RemoveProjectSkill(id: string, slug: string): $CancellablePromise<void> {
     return $Call.ByID(1724243308, id, slug);
+}
+
+export function RenameTag(id: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(2096137908, id, name);
 }
 
 export function RepairAllDrift(): $CancellablePromise<$models.RepairSummary> {

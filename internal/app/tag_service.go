@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 )
 
 type TagItem struct {
@@ -66,4 +67,30 @@ func (s *Service) SaveSkillNote(slug, body string) (string, error) {
 		return "", err
 	}
 	return body, nil
+}
+
+func (s *Service) RenameTag(id, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("标签名不能为空")
+	}
+	existing, err := s.store.FindTagByName(name)
+	if err != nil {
+		return err
+	}
+	if existing != nil && existing.ID != id {
+		return fmt.Errorf("标签已存在")
+	}
+	return s.store.RenameTag(id, name)
+}
+
+func (s *Service) DeleteTag(id string) error {
+	return s.store.DeleteTag(id)
+}
+
+func (s *Service) MergeTags(sourceID, targetID string) error {
+	if sourceID == targetID {
+		return fmt.Errorf("不能合并到自身")
+	}
+	return s.store.MergeTag(sourceID, targetID)
 }

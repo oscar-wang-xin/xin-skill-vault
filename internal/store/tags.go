@@ -116,3 +116,48 @@ func (s *Store) SaveSkillNote(skillID, body string) error {
 func timeNow() int64 {
 	return time.Now().Unix()
 }
+
+func (s *Store) FindTagByName(name string) (*TagRecord, error) {
+	row := s.db.QueryRow(`SELECT id, name, COALESCE(color, ''), 0 FROM tags WHERE name = ?`, name)
+	var record TagRecord
+	if err := row.Scan(&record.ID, &record.Name, &record.Color, &record.Count); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &record, nil
+}
+
+func (s *Store) RenameTag(id, name string) error {
+	_, err := s.db.Exec(`UPDATE tags SET name = ? WHERE id = ?`, name, id)
+	if err != nil {
+		return fmt.Errorf("rename tag: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) DeleteTag(id string) error {
+	_, err := s.db.Exec(`DELETE FROM tags WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete tag: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) MergeTag(sourceID, targetID string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`INSERT OR IGNORE INTO skill_tags (skill_id, tag_id)
+		SELECT skill_id, ? FROM skill_tags WHERE tag_id = ?`, targetID, sourceID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM tags WHERE id = ?`, sourceID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}

@@ -17,18 +17,21 @@ import {
   importSkillDirectory,
   listSkillSnapshots,
   listSkills,
+  listTags,
   openSkillFolder,
   openVaultFolder,
   pickSkillArchive,
   pickSkillDirectory,
   readSkillDocument,
   restoreSkillSnapshot,
+  renameTag,
+  deleteTag,
   saveSkillDocument,
   saveSkillNote,
   setSkillEnabled,
   setSkillTags,
 } from "../lib/api";
-import type { SkillDetail, SkillItem, SnapshotItem } from "../../bindings/xinskillvault/internal/app/models";
+import type { SkillDetail, SkillItem, SnapshotItem, TagItem } from "../../bindings/xinskillvault/internal/app/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import { useVaultStore } from "../stores/vault";
 
@@ -62,6 +65,12 @@ const noteSaving = ref(false);
 const tagModal = ref(false);
 const tagDraft = ref("");
 const tagSaving = ref(false);
+const tags = ref<TagItem[]>([]);
+const tagFilter = ref("");
+const tagManager = ref(false);
+const tagEditingID = ref<string | null>(null);
+const tagEditName = ref("");
+const tagBusy = ref(false);
 const exporting = ref(false);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
@@ -100,6 +109,7 @@ const driftSlugs = computed(() => new Set(driftBySlug.value.keys()));
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
   let list = skills.value.filter((item) => {
+    if (tagFilter.value && !(item.tags ?? []).includes(tagFilter.value)) return false;
     if (filter.value === "disabled" && item.enabled) return false;
     if (filter.value === "update") return !driftSlugs.value.has(item.slug);
     if (filter.value === "distributed" && item.assignedCount === 0) return false;
@@ -148,6 +158,14 @@ function initials(name: string): string {
   return trimmed ? Array.from(trimmed).slice(0, 2).join("").toUpperCase() : "SK";
 }
 
+async function loadTags() {
+  try {
+    tags.value = await listTags();
+  } catch {
+    tags.value = [];
+  }
+}
+
 async function loadSkills() {
   loading.value = true;
   try {
@@ -176,7 +194,7 @@ async function onImported() {
 async function refresh() {
   if (refreshing.value) return;
   refreshing.value = true;
-  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
   refreshing.value = false;
   showToast("已刷新本地仓库");
 }
@@ -196,7 +214,7 @@ async function importSkill() {
     const source = await pickSkillDirectory();
     if (!source) return;
     const item = await importSkillDirectory(source);
-    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
     showToast(`已导入：${item.name}`);
   } catch (error) {
     showToast(errorMessage(error));
@@ -212,7 +230,7 @@ async function importArchive() {
     const archive = await pickSkillArchive();
     if (!archive) return;
     const item = await importSkillArchive(archive);
-    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
     showToast(`已导入压缩包：${item.name}`);
   } catch (error) {
     showToast(errorMessage(error));
@@ -241,7 +259,7 @@ async function saveEdit() {
   savingEdit.value = true;
   try {
     await saveSkillDocument(activeSlug.value, draft.value, "编辑前");
-    await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
     const [nextDetail, nextSnapshots] = await Promise.all([
       getSkillDetail(activeSlug.value),
       listSkillSnapshots(activeSlug.value),
@@ -299,7 +317,7 @@ async function runConfirmAction() {
       await deleteSkill(activeSlug.value);
       confirmAction.value = null;
       closeDetail();
-      await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+      await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
       showToast("技能已移入回收站");
     } else if (action.snapshotId) {
       await deleteSkillSnapshot(activeSlug.value, action.snapshotId);
@@ -351,7 +369,7 @@ function openBatchDistribute() {
 }
 
 async function onDistributed() {
-  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
   if (activeSlug.value) {
     try {
       detail.value = await getSkillDetail(activeSlug.value);
@@ -388,7 +406,7 @@ async function saveTags() {
     const updated = await setSkillTags(detail.value.slug, tags);
     detail.value = { ...detail.value, tags: updated.tags ?? [] };
     tagModal.value = false;
-    await loadSkills();
+    await Promise.all([loadSkills(), loadTags()]);
     showToast("标签已更新");
   } catch (error) {
     showToast(errorMessage(error));
@@ -407,6 +425,48 @@ async function saveNote() {
     showToast(errorMessage(error));
   } finally {
     noteSaving.value = false;
+  }
+}
+
+function openTagManager() {
+  tagEditingID.value = null;
+  tagEditName.value = "";
+  tagManager.value = true;
+}
+
+function startTagRename(tag: TagItem) {
+  tagEditingID.value = tag.id;
+  tagEditName.value = tag.name;
+}
+
+async function saveTagRename() {
+  if (!tagEditingID.value || tagBusy.value) return;
+  tagBusy.value = true;
+  try {
+    await renameTag(tagEditingID.value, tagEditName.value);
+    tagEditingID.value = null;
+    await Promise.all([loadTags(), loadSkills()]);
+    showToast("标签已重命名");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    tagBusy.value = false;
+  }
+}
+
+async function removeTag(tag: TagItem) {
+  if (tagBusy.value) return;
+  if (!window.confirm(`删除标签「${tag.name}」？会从 ${tag.count} 个技能移除。`)) return;
+  tagBusy.value = true;
+  try {
+    await deleteTag(tag.id);
+    if (tagFilter.value === tag.name) tagFilter.value = "";
+    await Promise.all([loadTags(), loadSkills()]);
+    showToast("标签已删除");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    tagBusy.value = false;
   }
 }
 
@@ -487,7 +547,7 @@ function onKeydown(event: KeyboardEvent) {
 
 onMounted(async () => {
   window.addEventListener("keydown", onKeydown);
-  await Promise.all([vault.refresh(), loadSkills(), loadDrift()]);
+  await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
 });
 onUnmounted(() => {
   window.removeEventListener("keydown", onKeydown);
@@ -543,6 +603,11 @@ onUnmounted(() => {
             </button>
           </div>
           <div class="grow" />
+          <select v-model="tagFilter" class="input tag-select" title="按标签筛选">
+            <option value="">全部标签</option>
+            <option v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }} ({{ tag.count }})</option>
+          </select>
+          <button class="btn sm" title="管理标签" @click="openTagManager"><Icon name="tag" :size="12" /> 标签</button>
           <div class="search lib-search">
             <Icon name="search" :size="14" />
             <input v-model="query" class="input" placeholder="搜索技能名称、描述或 slug…" />
@@ -758,6 +823,33 @@ onUnmounted(() => {
       </footer>
     </aside>
 
+    <div v-if="tagManager" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card tag-manager">
+        <div class="confirm-head">
+          <div><h3>标签词典</h3><p>重命名或删除标签，会同步更新所有技能引用。</p></div>
+          <button class="icon-btn" :disabled="tagBusy" @click="tagManager = false"><Icon name="x" :size="15" /></button>
+        </div>
+        <div class="tag-manager-list">
+          <div v-for="tag in tags" :key="tag.id" class="tag-manager-row">
+            <template v-if="tagEditingID === tag.id">
+              <input v-model="tagEditName" class="input" @keydown.enter="saveTagRename" />
+              <button class="btn sm primary" :disabled="tagBusy" @click="saveTagRename">保存</button>
+              <button class="btn sm" :disabled="tagBusy" @click="tagEditingID = null">取消</button>
+            </template>
+            <template v-else>
+              <span class="badge">{{ tag.name }}</span>
+              <span class="muted">{{ tag.count }} 个技能</span>
+              <div class="grow" />
+              <button class="mini-link" @click="startTagRename(tag)">重命名</button>
+              <button class="mini-link danger" :disabled="tagBusy" @click="removeTag(tag)">删除</button>
+            </template>
+          </div>
+          <div v-if="!tags.length" class="empty-mini">还没有标签。</div>
+        </div>
+        <div class="confirm-foot"><button class="btn" @click="tagManager = false">关闭</button></div>
+      </div>
+    </div>
+
     <div v-if="tagModal" class="confirm-overlay" @click.self.stop>
       <div class="confirm-card">
         <div class="confirm-head">
@@ -878,6 +970,12 @@ onUnmounted(() => {
 .editor-hint { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-4); font-size: 10px; }
 .skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }
 .skill-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tag-select { width: 120px; font-size: 10px; }
+.tag-manager { width: min(500px, calc(100vw - 32px)); }
+.tag-manager-list { max-height: 420px; overflow: auto; padding: 6px 14px 10px; }
+.tag-manager-row { display: flex; align-items: center; gap: 6px; min-height: 32px; border-bottom: 1px dashed var(--border-soft); }
+.tag-manager-row .input { flex: 1; }
+.mini-link.danger { color: var(--danger); }
 .snapshot-count { color: var(--text-4); font-weight: 400; }
 .snapshot-row { display: grid; grid-template-columns: 14px minmax(0,1fr) auto auto auto auto; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px dashed var(--border-soft); font-size: 9.5px; color: var(--text-2); }
 .snapshot-row:last-child { border-bottom: 0; }

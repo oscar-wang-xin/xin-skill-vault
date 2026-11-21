@@ -75,6 +75,7 @@ Wails v3 application
 | `ListPrompts` / `CreatePrompt` / `GetPrompt` / `SavePrompt` / `DeletePrompt` | 提示词与 `.md` 版本文件 |
 | `GetPromptVersion` / `DeletePromptVersion` | 读取/删除版本，当前版本删除后自动切换 |
 | `ListTags` / `SetSkillTags` | 标签词典与技能标签 |
+| `RenameTag` / `DeleteTag` / `MergeTags` | 标签词典维护与合并 |
 | `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
 | `ExportSkillPackage` | 原生保存对话框导出 `.skill`（zip + manifest） |
 | `Timestamp` | 前端探测真实后端是否可用 |

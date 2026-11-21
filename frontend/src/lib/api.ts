@@ -433,6 +433,22 @@ export async function exportSkillPackage(slug: string): Promise<string> {
   return AppService.ExportSkillPackage(slug);
 }
 
+
+export async function renameTag(id: string, name: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("重命名标签需要桌面应用");
+  await AppService.RenameTag(id, name);
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除标签需要桌面应用");
+  await AppService.DeleteTag(id);
+}
+
+export async function mergeTags(sourceID: string, targetID: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("合并标签需要桌面应用");
+  await AppService.MergeTags(sourceID, targetID);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
