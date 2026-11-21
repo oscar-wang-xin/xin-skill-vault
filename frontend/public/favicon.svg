@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="Xin Skill Vault">
+  <title>Xin Skill Vault</title>
+  <defs>
+    <radialGradient id="tileBg" cx="16%" cy="4%" r="130%">
+      <stop offset="0%" stop-color="#30363F"/>
+      <stop offset="42%" stop-color="#191E24"/>
+      <stop offset="100%" stop-color="#06080B"/>
+    </radialGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="52%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="58%" stop-color="#F4F6F9"/>
+      <stop offset="100%" stop-color="#C2CAD5"/>
+    </linearGradient>
+    <linearGradient id="rkBody" x1="0.2" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="46%" stop-color="#EEF1F5"/>
+      <stop offset="100%" stop-color="#BAC2CC"/>
+    </linearGradient>
+    <linearGradient id="rkFin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C6CDD6"/>
+      <stop offset="100%" stop-color="#848D99"/>
+    </linearGradient>
+    <linearGradient id="rkFlame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD08A"/>
+      <stop offset="55%" stop-color="#FF9A3C"/>
+      <stop offset="100%" stop-color="#F0610A"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="6" stdDeviation="3" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="rocketShadow" x="-60%" y="-40%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="url(#tileBg)"/>
+  <rect x="1" y="1" width="254" height="254" rx="55" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="2"/>
+  <path d="M56 1H200L56 145V1Z" fill="url(#gloss)"/>
+
+  <g font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-weight="800" text-anchor="middle">
+    <text x="128" y="177" font-size="120" fill="#000000" fill-opacity="0.45" filter="url(#soft)">X<tspan font-size="76">IN</tspan></text>
+    <text x="128" y="170" font-size="120" fill="url(#ink)">X<tspan font-size="76">IN</tspan></text>
+  </g>
+
+  <g filter="url(#rocketShadow)">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0; 0 -7; 0 0" dur="3.2s" repeatCount="indefinite"/>
+      <g transform="translate(118 30) scale(4.3)">
+        <path d="M12 1.6c3.4 3.3 5 7.2 5 11.2v3.8H7v-3.8c0-4 1.6-7.9 5-11.2Z" fill="url(#rkBody)" stroke="#A9B1BD" stroke-width="0.55"/>
+        <path d="M10.2 6.4c-.9 2.3-1.4 4.6-1.4 7v2.6" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" opacity="0.9"/>
+        <path d="M7 13.4 4.2 17.7v2.7L7 18.6Z" fill="url(#rkFin)" stroke="#7E8792" stroke-width="0.4"/>
+        <path d="M17 13.4l2.8 4.3v2.7L17 18.6Z" fill="url(#rkFin)" stroke="#7E8792" stroke-width="0.4"/>
+        <circle cx="12" cy="9" r="2.1" fill="#2B2F35"/>
+        <circle cx="11.35" cy="8.35" r="0.6" fill="#FFFFFF" opacity="0.9"/>
+        <path d="M12 17.6c-1.4 2-1.4 4 0 5.8 1.4-1.8 1.4-3.8 0-5.8Z" fill="url(#rkFlame)"/>
+      </g>
+    </g>
+  </g>
+</svg>

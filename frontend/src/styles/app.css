@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7f8;
+  --sidebar: #fbfcfd;
+  --panel: #ffffff;
+  --panel-2: #fafafb;
+  --panel-3: #f1f3f6;
+  --border: #e4e6ea;
+  --border-soft: #eef0f3;
+  --border-strong: #d3d6dc;
+  --text: #17191d;
+  --text-2: #5c626d;
+  --text-3: #8d939e;
+  --text-4: #a8adb6;
+  --accent: #3f4653;
+  --accent-hover: #2c323d;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(63, 70, 83, 0.08);
+  --accent-soft-strong: rgba(63, 70, 83, 0.16);
+  --row-selected: #e8eef9;
+  --success: #17864a;
+  --success-soft: rgba(23, 134, 74, 0.1);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.1);
+  --danger: #c53030;
+  --danger-soft: rgba(197, 48, 48, 0.09);
+  --info: #1d4ed8;
+  --info-soft: rgba(29, 78, 216, 0.08);
+  --radius-sm: 7px;
+  --radius: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --shadow-sm: 0 1px 2px rgba(16, 18, 22, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-md: 0 8px 24px rgba(16, 18, 22, 0.08), 0 2px 6px rgba(16, 18, 22, 0.04);
+  --shadow-lg: 0 28px 70px rgba(16, 18, 22, 0.18), 0 6px 18px rgba(16, 18, 22, 0.06);
+  --sidebar-w: 228px;
+  --topbar-h: 46px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur: 160ms;
+  --nm-hi: #ffffff;
+  --nm-shadow: 5px 5px 12px rgba(18, 22, 30, 0.09), -5px -5px 12px var(--nm-hi);
+  --nm-inset: inset 2px 2px 5px rgba(18, 22, 30, 0.1), inset -2px -2px 5px var(--nm-hi);
+}
+
+[data-theme="mech-gray"] {
+  --accent: #3f4653; --accent-hover: #2b313b;
+  --bg: #f6f7f8; --sidebar: #fbfcfd; --panel-2: #fafafb;
+  --accent-soft: rgba(63, 70, 83, 0.075); --accent-soft-strong: rgba(63, 70, 83, 0.15);
+  --row-selected: #e8eef9;
+}
+[data-theme="business-blue"] {
+  --accent: #2563eb; --accent-hover: #1d4ed8;
+  --bg: #f6f8fc; --sidebar: #fbfdff; --panel-2: #f9fbff;
+  --accent-soft: rgba(37, 99, 235, 0.08); --accent-soft-strong: rgba(37, 99, 235, 0.17);
+  --row-selected: #e4edff;
+}
+[data-theme="mint"] {
+  --accent: #0e9f74; --accent-hover: #0b8a64;
+  --bg: #f5faf8; --sidebar: #fbfefc; --panel-2: #f8fcfa;
+  --accent-soft: rgba(14, 159, 116, 0.09); --accent-soft-strong: rgba(14, 159, 116, 0.18);
+  --row-selected: #e0f7ef;
+}
+[data-theme="alibaba-orange"] {
+  --accent: #f0610a; --accent-hover: #d4530a;
+  --bg: #fbf8f5; --sidebar: #fffdfb; --panel-2: #fdfaf7;
+  --accent-soft: rgba(240, 97, 10, 0.09); --accent-soft-strong: rgba(240, 97, 10, 0.18);
+  --row-selected: #fff0e5;
+}
+[data-theme="grape"] {
+  --accent: #7c3aed; --accent-hover: #6d28d9;
+  --bg: #f9f8fe; --sidebar: #fdfcff; --panel-2: #fbfaff;
+  --accent-soft: rgba(124, 58, 237, 0.08); --accent-soft-strong: rgba(124, 58, 237, 0.17);
+  --row-selected: #f1eaff;
+}
+[data-theme="mech-amber"] {
+  --accent: #d97706; --accent-hover: #b45309;
+  --bg: #faf8f3; --sidebar: #fdfcf8; --panel-2: #fcfaf5;
+  --accent-soft: rgba(217, 119, 6, 0.09); --accent-soft-strong: rgba(217, 119, 6, 0.19);
+  --row-selected: #fff4e1;
+}
+
+html[data-neumorph="off"] {
+  --nm-shadow: var(--shadow-sm);
+  --nm-inset: none;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { border: 0; background: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--accent-soft-strong); }
+* { scrollbar-width: thin; scrollbar-color: #cfd3d9 transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--text-4) 42%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+.mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
+.muted { color: var(--text-3); }
+.grow { flex: 1; }
+.rowflex { display: flex; align-items: center; gap: 8px; }

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Xin Skill Vault
+Comment=AI Agent Skill Vault
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/xinskillvault.exe %u
+Terminal=false
+Type=Application
+Icon=xinskillvault.exe
+Categories=Utility;
+StartupWMClass=xinskillvault.exe
+
+ 

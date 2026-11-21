@@ -3,7 +3,7 @@
 **One vault for every AI agent skill on your machine.**
 一个仓库，统一管理本机所有 AI Agent 的 skill：导入、编辑、分组、分发、追踪、回滚。
 
-> 当前阶段：**规划 + 高保真原型**，尚未开始编码。
+> 当前阶段：**M0 工程骨架已跑通**；原型与开发计划在 `prototype/`、`docs/`，M1 开始接入仓库扫描与导入。
 
 ---
 
@@ -90,14 +90,63 @@ xin-skill-vault/
 
 | 里程碑 | 内容 | 估时 |
 | --- | --- | --- |
-| M0 | 脚手架、CI、设计系统 | 3 天 |
+| M0 | 脚手架、SQLite、配置、AppShell、设计系统 | 3 天 |
 | M1 | 仓库、技能管理、编辑器 | 7 天 |
 | M2 | 扫描、分发、漂移检测 | 8 天 |
 | M3 | 市场与更新 | 6 天 |
-| M4 | 分组、笔记、Bundle、打包 | 5 天 |
+| M4 | 组合、提示词、标签、笔记、Bundle、打包 | 8 天 |
 | M5 | 打磨、i18n、安装包、开源发布 | 5 天 |
 
-详见 [docs/dev-plan.md](docs/dev-plan.md) 与 [docs/review.md](docs/review.md)。
+详见 [docs/dev-plan.md](docs/dev-plan.md)、[docs/architecture.md](docs/architecture.md) 与 [docs/review.md](docs/review.md)。
+
+
+## 开发
+
+### 环境
+
+- Go 1.26+
+- Node.js 20+
+- Wails v3.1.0（`wails3` 已在 PATH）
+
+### 常用命令
+
+```bash
+# 启动桌面开发模式（Go 热重载 + Vite）
+wails3 task dev
+
+# 只启动前端（浏览器预览，自动使用 demo 配置）
+cd frontend && npm run dev
+
+# 生成 Wails TypeScript 绑定
+wails3 generate bindings -ts -i -d frontend/bindings ./...
+
+# Go 测试 / 构建
+go test ./...
+wails3 build
+```
+
+### M0 已落地
+
+- Wails v3 + Vue 3 + TypeScript + Vite + Pinia + Vue Router。
+- `internal/config`：配置目录 `%APPDATA%\XinSkillVault`，默认仓库 `~/.skill-repo`。
+- `internal/store`：SQLite 迁移框架，`PRAGMA user_version`，迁移前备份；索引位于 `<vault>/.skillrepo/vault.db`。
+- `internal/app`：配置、仓库概览、打开目录等 Wails 服务。
+- 日志：`<vault>/.skillrepo/logs/app.log`（JSON lines）。
+- AppShell：侧栏、顶栏、主题下拉、拟态开关、命令面板、6 个页面路由。
+- 浏览器预览无 Wails 后端时自动使用 demo 配置，不写真实文件。
+
+### 目录
+
+```text
+main.go                 Wails 入口与依赖装配
+internal/config         配置文件读写与默认值
+internal/store          SQLite 打开、迁移、索引查询
+internal/app            Wails 服务、目录布局、打开文件夹
+internal/logx           结构化日志
+frontend/src            Vue AppShell、路由、页面、样式
+prototype/              高保真原型（设计基线）
+docs/                   开发计划、架构、评审报告
+```
 
 ## 参考
 
