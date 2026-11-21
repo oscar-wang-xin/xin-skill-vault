@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"archive/zip"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,5 +74,79 @@ func TestImportRejectsVaultInternalSource(t *testing.T) {
 	defer st.Close()
 	if _, err := New(root, st).ImportDirectory(source); err == nil {
 		t.Fatal("expected internal source to be rejected")
+	}
+}
+
+func TestImportArchiveAndSaveDocument(t *testing.T) {
+	root := t.TempDir()
+	st, err := store.Open(filepath.Join(root, ".skillrepo", "vault.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	v := New(root, st)
+
+	archivePath := filepath.Join(t.TempDir(), "demo.zip")
+	archiveFile, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	zw := zip.NewWriter(archiveFile)
+	doc := "---\nname: Archive Skill\ndescription: archive import test\nversion: 0.1.0\n---\n\n# Archive\n"
+	writeZip := func(name, body string) {
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Write([]byte(body)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeZip("bundle/SKILL.md", doc)
+	writeZip("bundle/references/notes.md", "notes")
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := archiveFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	record, err := v.ImportArchive(archivePath)
+	if err != nil {
+		t.Fatalf("import archive: %v", err)
+	}
+	if record.SourceType != "zip" || record.SourceRef != archivePath || record.Slug != "archive-skill" {
+		t.Fatalf("unexpected archive record: %+v", record)
+	}
+	stored, err := st.FindSkillBySlug("archive-skill")
+	if err != nil || stored == nil || stored.SourceType != "zip" || stored.SourceRef != archivePath {
+		t.Fatalf("source metadata not persisted: %+v, %v", stored, err)
+	}
+
+	next := "---\nname: Archive Skill\ndescription: archive import test v2\nversion: 0.2.0\n---\n\n# Archive v2\n"
+	updated, err := v.SaveDocument("archive-skill", next, "编辑前")
+	if err != nil {
+		t.Fatalf("save document: %v", err)
+	}
+	if updated.ContentHash == record.ContentHash || updated.Version != "0.2.0" {
+		t.Fatalf("document update did not refresh index: %+v", updated)
+	}
+	content, err := v.ReadDocument("archive-skill")
+	if err != nil || content != next {
+		t.Fatalf("read document = %q, %v", content, err)
+	}
+	snapshots, err := v.Snapshots("archive-skill")
+	if err != nil || len(snapshots) != 1 {
+		t.Fatalf("snapshots = %+v, %v", snapshots, err)
+	}
+	if _, err := os.Stat(snapshots[0].FilePath); err != nil {
+		t.Fatalf("snapshot file missing: %v", err)
+	}
+	if _, err := v.SaveDocument("archive-skill", "not valid", ""); err == nil {
+		t.Fatal("expected invalid document to be rejected")
+	}
+	after, _ := v.ReadDocument("archive-skill")
+	if after != next {
+		t.Fatal("invalid save must not change SKILL.md")
 	}
 }

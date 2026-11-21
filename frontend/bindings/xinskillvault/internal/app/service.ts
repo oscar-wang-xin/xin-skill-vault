@@ -29,8 +29,16 @@ export function GetVaultSummary(): $CancellablePromise<$models.VaultSummary> {
     return $Call.ByID(1189148126);
 }
 
+export function ImportSkillArchive(path: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(2663609914, path);
+}
+
 export function ImportSkillDirectory(source: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1879938159, source);
+}
+
+export function ListSkillSnapshots(slug: string): $CancellablePromise<$models.SnapshotItem[] | null> {
+    return $Call.ByID(2879583252, slug);
 }
 
 export function ListSkills(): $CancellablePromise<$models.SkillItem[] | null> {
@@ -54,14 +62,29 @@ export function OpenVaultFolder(): $CancellablePromise<void> {
 }
 
 /**
+ * PickSkillArchive opens the native file picker for .zip / .skill packages.
+ */
+export function PickSkillArchive(): $CancellablePromise<string> {
+    return $Call.ByID(1576686526);
+}
+
+/**
  * PickSkillDirectory opens the native folder picker; an empty string means cancelled.
  */
 export function PickSkillDirectory(): $CancellablePromise<string> {
     return $Call.ByID(1268944339);
 }
 
+export function ReadSkillDocument(slug: string): $CancellablePromise<string> {
+    return $Call.ByID(1991752622, slug);
+}
+
 export function SaveConfig(next: config$0.Config): $CancellablePromise<$models.SaveConfigResult> {
     return $Call.ByID(1613918349, next);
+}
+
+export function SaveSkillDocument(slug: string, content: string, note: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(1775529333, slug, content, note);
 }
 
 /**

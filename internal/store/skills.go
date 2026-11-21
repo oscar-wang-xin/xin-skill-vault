@@ -133,3 +133,94 @@ func boolInt(value bool) int {
 	}
 	return 0
 }
+
+type SnapshotRecord struct {
+	ID          string
+	SkillID     string
+	ContentHash string
+	FilePath    string
+	Note        string
+	CreatedAt   int64
+}
+
+func (s *Store) UpdateSkill(record SkillRecord) error {
+	_, err := s.db.Exec(`
+		UPDATE skills SET
+			name = ?, description = ?, version = ?, author = ?, license = ?, icon = ?,
+			content_hash = ?, size_bytes = ?, file_count = ?, source_type = ?, source_ref = ?, updated_at = ?
+		WHERE id = ? AND deleted_at IS NULL`,
+		record.Name, record.Description, nullString(record.Version), nullString(record.Author),
+		nullString(record.License), nullString(record.Icon), record.ContentHash,
+		record.SizeBytes, record.FileCount, record.SourceType, nullString(record.SourceRef),
+		record.UpdatedAt, record.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("update skill: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) CreateSnapshot(record SnapshotRecord) error {
+	_, err := s.db.Exec(`
+		INSERT INTO snapshots (id, skill_id, content_hash, file_path, note, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		record.ID, record.SkillID, record.ContentHash, record.FilePath, nullString(record.Note), record.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert snapshot: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) ListSnapshots(skillID string) ([]SnapshotRecord, error) {
+	rows, err := s.db.Query(`
+		SELECT id, skill_id, content_hash, file_path, note, created_at
+		FROM snapshots WHERE skill_id = ? ORDER BY created_at DESC`, skillID)
+	if err != nil {
+		return nil, fmt.Errorf("list snapshots: %w", err)
+	}
+	defer rows.Close()
+	var out []SnapshotRecord
+	for rows.Next() {
+		var record SnapshotRecord
+		var note sql.NullString
+		if err := rows.Scan(&record.ID, &record.SkillID, &record.ContentHash, &record.FilePath, &note, &record.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan snapshot: %w", err)
+		}
+		record.Note = note.String
+		out = append(out, record)
+	}
+	return out, rows.Err()
+}
+
+// UpdateSkillWithSnapshot updates a skill and records its previous snapshot in one transaction.
+func (s *Store) UpdateSkillWithSnapshot(record SkillRecord, snapshot SnapshotRecord) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin skill update: %w", err)
+	}
+	if _, err := tx.Exec(`
+		UPDATE skills SET
+			name = ?, description = ?, version = ?, author = ?, license = ?, icon = ?,
+			content_hash = ?, size_bytes = ?, file_count = ?, updated_at = ?
+		WHERE id = ? AND deleted_at IS NULL`,
+		record.Name, record.Description, nullString(record.Version), nullString(record.Author),
+		nullString(record.License), nullString(record.Icon), record.ContentHash,
+		record.SizeBytes, record.FileCount, record.UpdatedAt, record.ID,
+	); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("update skill: %w", err)
+	}
+	if _, err := tx.Exec(`
+		INSERT INTO snapshots (id, skill_id, content_hash, file_path, note, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		snapshot.ID, snapshot.SkillID, snapshot.ContentHash, snapshot.FilePath, nullString(snapshot.Note), snapshot.CreatedAt,
+	); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("insert snapshot: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit skill update: %w", err)
+	}
+	return nil
+}

@@ -15,10 +15,10 @@ func TestOpenMigratesAndReopens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SchemaVersion: %v", err)
 	}
-	if version != 1 {
-		t.Fatalf("schema version = %d, want 1", version)
+	if version != 2 {
+		t.Fatalf("schema version = %d, want 2", version)
 	}
-	for _, table := range []string{"skills", "targets", "assignments", "prompt_categories", "prompt_versions", "audit_log"} {
+	for _, table := range []string{"skills", "targets", "assignments", "prompt_categories", "prompt_versions", "snapshots", "audit_log"} {
 		var name string
 		if err := s.DB().QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&name); err != nil {
 			t.Fatalf("table %s missing: %v", table, err)
@@ -33,7 +33,7 @@ func TestOpenMigratesAndReopens(t *testing.T) {
 		t.Fatalf("reopen: %v", err)
 	}
 	defer reopened.Close()
-	if v, _ := reopened.SchemaVersion(); v != 1 {
+	if v, _ := reopened.SchemaVersion(); v != 2 {
 		t.Fatalf("schema version after reopen = %d, want 1", v)
 	}
 }

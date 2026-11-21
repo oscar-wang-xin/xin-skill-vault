@@ -11,5 +11,6 @@ export type {
     SaveConfigResult,
     SkillDetail,
     SkillItem,
+    SnapshotItem,
     VaultSummary
 } from "./models.js";

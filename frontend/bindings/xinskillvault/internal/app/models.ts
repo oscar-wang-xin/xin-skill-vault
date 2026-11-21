@@ -41,6 +41,7 @@ export interface SkillDetail {
     "body": string;
     "sourceRef": string;
     "files": vault$0.FileEntry[] | null;
+    "snapshotCount": number;
 }
 
 export interface SkillItem {
@@ -60,6 +61,14 @@ export interface SkillItem {
     "contentHash": string;
     "updatedAt": number;
     "tags": string[] | null;
+}
+
+export interface SnapshotItem {
+    "id": string;
+    "contentHash": string;
+    "filePath": string;
+    "note": string;
+    "createdAt": number;
 }
 
 export interface VaultSummary {

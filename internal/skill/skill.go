@@ -57,22 +57,31 @@ func ParseDir(dir string) (*Skill, error) {
 	if err != nil {
 		return nil, err
 	}
+	slug, err := ValidateMetadata(meta)
+	if err != nil {
+		return nil, err
+	}
+	return &Skill{Dir: abs, DocPath: docPath, Meta: meta, Slug: slug, Body: body}, nil
+}
+
+// ValidateMetadata normalizes and validates frontmatter, returning the canonical slug.
+func ValidateMetadata(meta Metadata) (string, error) {
 	meta.Name = strings.TrimSpace(meta.Name)
 	meta.Description = strings.TrimSpace(meta.Description)
 	if meta.Name == "" {
-		return nil, fmt.Errorf("SKILL.md frontmatter is missing name")
+		return "", fmt.Errorf("SKILL.md frontmatter is missing name")
 	}
 	if meta.Description == "" {
-		return nil, fmt.Errorf("SKILL.md frontmatter is missing description")
+		return "", fmt.Errorf("SKILL.md frontmatter is missing description")
 	}
 	slug := strings.ToLower(strings.TrimSpace(meta.Slug))
 	if slug == "" {
 		slug = Slugify(meta.Name)
 	}
 	if !slugPattern.MatchString(slug) {
-		return nil, fmt.Errorf("invalid slug %q: use lowercase letters, digits and hyphens", slug)
+		return "", fmt.Errorf("invalid slug %q: use lowercase letters, digits and hyphens", slug)
 	}
-	return &Skill{Dir: abs, DocPath: docPath, Meta: meta, Slug: slug, Body: body}, nil
+	return slug, nil
 }
 
 // ParseDocument splits YAML frontmatter from markdown body.

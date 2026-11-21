@@ -47,6 +47,12 @@ Wails v3 application
 | `SaveConfig` | 校验主题、创建目录、原子写配置；仓库路径变更返回 `restartRequired` |
 | `GetVaultSummary` | 技能/目标/分配/提示词/分类计数、数据库大小、schema |
 | `OpenVaultFolder` / `OpenPromptFolder` / `OpenConfigFolder` | 系统文件管理器打开目录 |
+| `ListSkills` / `GetSkillDetail` | 仓库技能列表与详情（含文件清单、快照数） |
+| `PickSkillDirectory` / `ImportSkillDirectory` | 原生目录选择与目录导入 |
+| `PickSkillArchive` / `ImportSkillArchive` | `.zip` / `.skill` 选择与导入 |
+| `ReadSkillDocument` / `SaveSkillDocument` | 读取/保存 SKILL.md，保存前写快照 |
+| `ListSkillSnapshots` | 技能历史快照列表 |
+| `OpenSkillFolder` | 打开单个技能目录 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -67,7 +73,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 
 - [x] `wails3 build` 产出 Windows 可执行文件
 - [x] 配置/仓库/日志/数据库首次启动自动创建
-- [x] SQLite 迁移可重复执行，schema v1
+- [x] SQLite 迁移可重复执行，schema v2（含 snapshots）
 - [x] Go 单元测试覆盖配置、迁移、服务摘要
 - [x] 前端 `vue-tsc` + `vite build`
 - [x] 6 个路由、主题/拟态、命令面板、配置保存
@@ -78,18 +84,18 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 已接通：
 
 - `internal/skill`：SKILL.md frontmatter/正文解析与校验
-- `internal/vault`：目录导入、SHA256 指纹、原子复制、文件清单
-- `internal/store/skills.go`：技能创建/按 slug 查询/列表
-- Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `OpenSkillFolder`
-- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、导入按钮
+- `internal/vault`：目录/ZIP 导入、SHA256 指纹、原子复制、文件清单、SKILL.md 快照保存
+- `internal/store/skills.go`：技能创建/按 slug 查询/列表/更新/快照
+- Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
+- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表
 - 示例：`examples/demo-skill/`
 
 尚未完成：
 
 - Agent 目录扫描与 Finding（M2）
-- ZIP/URL 导入
+- URL 导入
 - 分发、项目、提示词实际数据
-- 技能编辑与版本快照
+- 快照回滚/删除、技能删除/禁用回收站
 
 ## 8. 下一步（M1 剩余 + M2）
 

@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, SaveConfigResult, SkillDetail, SkillItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, SaveConfigResult, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -131,6 +131,32 @@ export async function importSkillDirectory(source: string): Promise<SkillItem> {
 export async function openSkillFolder(slug: string): Promise<void> {
   if (!(await hasBackend())) return;
   await AppService.OpenSkillFolder(slug);
+}
+
+
+export async function pickSkillArchive(): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导入压缩包需要桌面应用");
+  return AppService.PickSkillArchive();
+}
+
+export async function importSkillArchive(path: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("导入压缩包需要桌面应用");
+  return AppService.ImportSkillArchive(path);
+}
+
+export async function readSkillDocument(slug: string): Promise<string> {
+  if (!(await hasBackend())) throw new Error("编辑技能需要桌面应用");
+  return AppService.ReadSkillDocument(slug);
+}
+
+export async function saveSkillDocument(slug: string, content: string, note = "编辑前"): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("保存技能需要桌面应用");
+  return AppService.SaveSkillDocument(slug, content, note);
+}
+
+export async function listSkillSnapshots(slug: string): Promise<SnapshotItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListSkillSnapshots(slug)) ?? [];
 }
 
 export function formatBytes(bytes: number): string {

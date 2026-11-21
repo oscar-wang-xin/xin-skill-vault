@@ -5,13 +5,18 @@ import {
   errorMessage,
   formatBytes,
   getSkillDetail,
+  importSkillArchive,
   importSkillDirectory,
+  listSkillSnapshots,
   listSkills,
   openSkillFolder,
   openVaultFolder,
+  pickSkillArchive,
   pickSkillDirectory,
+  readSkillDocument,
+  saveSkillDocument,
 } from "../lib/api";
-import type { SkillDetail, SkillItem } from "../../bindings/xinskillvault/internal/app/models";
+import type { SkillDetail, SkillItem, SnapshotItem } from "../../bindings/xinskillvault/internal/app/models";
 import { useVaultStore } from "../stores/vault";
 
 type Tab = "mine" | "scan" | "groups";
@@ -30,6 +35,10 @@ const checked = ref(new Set<string>());
 const activeSlug = ref<string | null>(null);
 const detail = ref<SkillDetail | null>(null);
 const detailLoading = ref(false);
+const snapshots = ref<SnapshotItem[]>([]);
+const editing = ref(false);
+const draft = ref("");
+const savingEdit = ref(false);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 let toastTimer: number | undefined;
@@ -144,6 +153,58 @@ async function importSkill() {
   }
 }
 
+async function importArchive() {
+  if (importing.value) return;
+  importing.value = true;
+  try {
+    const archive = await pickSkillArchive();
+    if (!archive) return;
+    const item = await importSkillArchive(archive);
+    await Promise.all([vault.refresh(), loadSkills()]);
+    showToast(`已导入压缩包：${item.name}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function startEdit() {
+  if (!activeSlug.value) return;
+  try {
+    draft.value = await readSkillDocument(activeSlug.value);
+    editing.value = true;
+  } catch (error) {
+    showToast(errorMessage(error));
+  }
+}
+
+function cancelEdit() {
+  editing.value = false;
+  draft.value = "";
+}
+
+async function saveEdit() {
+  if (!activeSlug.value || savingEdit.value) return;
+  savingEdit.value = true;
+  try {
+    await saveSkillDocument(activeSlug.value, draft.value, "编辑前");
+    await Promise.all([vault.refresh(), loadSkills()]);
+    const [nextDetail, nextSnapshots] = await Promise.all([
+      getSkillDetail(activeSlug.value),
+      listSkillSnapshots(activeSlug.value),
+    ]);
+    detail.value = nextDetail;
+    snapshots.value = nextSnapshots;
+    editing.value = false;
+    showToast("SKILL.md 已保存，旧版本已写入快照");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    savingEdit.value = false;
+  }
+}
+
 function toggleCheck(slug: string) {
   if (checked.value.has(slug)) checked.value.delete(slug);
   else checked.value.add(slug);
@@ -167,11 +228,19 @@ async function openDetail(item: SkillItem) {
   returnFocus = document.activeElement as HTMLElement | null;
   activeSlug.value = item.slug;
   detail.value = null;
+  snapshots.value = [];
+  editing.value = false;
+  draft.value = "";
   detailLoading.value = true;
   await nextTick();
   closeButton.value?.focus();
   try {
-    detail.value = await getSkillDetail(item.slug);
+    const [nextDetail, nextSnapshots] = await Promise.all([
+      getSkillDetail(item.slug),
+      listSkillSnapshots(item.slug),
+    ]);
+    detail.value = nextDetail;
+    snapshots.value = nextSnapshots;
   } catch (error) {
     showToast(errorMessage(error));
     activeSlug.value = null;
@@ -183,6 +252,9 @@ async function openDetail(item: SkillItem) {
 function closeDetail() {
   activeSlug.value = null;
   detail.value = null;
+  snapshots.value = [];
+  editing.value = false;
+  draft.value = "";
   nextTick(() => returnFocus?.focus());
 }
 
@@ -196,7 +268,9 @@ async function openSkillDir() {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape" && activeSlug.value) closeDetail();
+  if (event.key !== "Escape") return;
+  if (editing.value) cancelEdit();
+  else if (activeSlug.value) closeDetail();
 }
 
 onMounted(async () => {
@@ -233,7 +307,10 @@ onUnmounted(() => {
           </button>
           <button class="btn" :disabled="importing" title="从本地目录导入包含 SKILL.md 的技能" @click="importSkill">
             <Icon name="upload" :size="14" />
-            {{ importing ? "导入中…" : "导入" }}
+            {{ importing ? "导入中…" : "导入目录" }}
+          </button>
+          <button class="btn" :disabled="importing" title="从 .zip / .skill 压缩包导入" @click="importArchive">
+            <Icon name="file" :size="13" /> ZIP
           </button>
           <button class="btn" :disabled="refreshing" title="重新读取本地仓库" @click="refresh">
             <Icon name="refresh" :size="14" :class="{ spin: refreshing }" />
@@ -393,10 +470,18 @@ onUnmounted(() => {
           <h2>{{ detail?.name ?? "技能详情" }}</h2>
           <span class="mono">{{ detail?.slug ?? activeSlug }}</span>
         </div>
-        <button ref="closeButton" class="icon-btn" title="关闭详情" @click="closeDetail"><Icon name="x" :size="16" /></button>
+        <button ref="closeButton" class="icon-btn" :title="editing ? '取消编辑' : '关闭详情'" @click="editing ? cancelEdit() : closeDetail()"><Icon name="x" :size="16" /></button>
       </header>
       <div v-if="detailLoading" class="drawer-loading">正在读取技能目录…</div>
       <div v-else-if="detail" class="drawer-body">
+        <template v-if="editing">
+          <div class="editor-hint">
+            <Icon name="edit" :size="13" />
+            <span>编辑 SKILL.md · 保存前会为旧版本生成快照</span>
+          </div>
+          <textarea v-model="draft" class="skill-editor" spellcheck="false" aria-label="SKILL.md 内容" />
+        </template>
+        <template v-else>
         <p class="detail-desc">{{ detail.description }}</p>
         <div class="detail-tags">
           <span class="badge accent">{{ detail.enabled ? "启用" : "禁用" }}</span>
@@ -419,11 +504,33 @@ onUnmounted(() => {
             <span class="muted">{{ file.isDir ? "" : formatBytes(file.size) }}</span>
           </div>
         </div>
+        <template v-if="snapshots.length">
+          <h3>历史快照 <span class="snapshot-count">{{ snapshots.length }}</span></h3>
+          <div class="file-list">
+            <div v-for="snapshot in snapshots.slice(0, 6)" :key="snapshot.id" class="snapshot-row">
+              <Icon name="clock" :size="12" />
+              <span>{{ snapshot.note || "编辑前" }}</span>
+              <span class="mono">{{ snapshot.contentHash.slice(0, 10) }}</span>
+              <span class="muted">{{ formatDate(snapshot.createdAt) }}</span>
+            </div>
+          </div>
+        </template>
+        </template>
       </div>
       <footer class="drawer-foot">
-        <button class="btn" @click="openSkillDir"><Icon name="folder" :size="13" /> 打开目录</button>
-        <div class="grow" />
-        <button class="btn" @click="closeDetail">关闭</button>
+        <template v-if="editing">
+          <button class="btn" :disabled="savingEdit" @click="cancelEdit">取消</button>
+          <div class="grow" />
+          <button class="btn primary" :disabled="savingEdit" @click="saveEdit">
+            {{ savingEdit ? "保存中…" : "保存" }}
+          </button>
+        </template>
+        <template v-else>
+          <button class="btn" :disabled="!detail" @click="startEdit"><Icon name="edit" :size="12" /> 编辑</button>
+          <button class="btn" :disabled="!detail" @click="openSkillDir"><Icon name="folder" :size="13" /> 打开目录</button>
+          <div class="grow" />
+          <button class="btn" @click="closeDetail">关闭</button>
+        </template>
       </footer>
     </aside>
 
@@ -504,5 +611,13 @@ onUnmounted(() => {
 .file-row:last-child { border-bottom: 0; }
 .file-row span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .drawer-foot { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); flex: none; }
+.editor-hint { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-4); font-size: 10px; }
+.skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }
+.skill-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.snapshot-count { color: var(--text-4); font-weight: 400; }
+.snapshot-row { display: grid; grid-template-columns: 14px minmax(0,1fr) auto auto; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px dashed var(--border-soft); font-size: 9.5px; color: var(--text-2); }
+.snapshot-row:last-child { border-bottom: 0; }
+.snapshot-row .mono { color: var(--text-4); font-size: 8.5px; }
+.snapshot-row .muted { color: var(--text-4); }
 @media (max-width: 900px) { .lib-search { width: 230px; } .st-row { grid-template-columns: 18px 16px minmax(0,1fr) 46px 56px 44px 34px 84px; } }
 </style>

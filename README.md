@@ -3,7 +3,7 @@
 **One vault for every AI agent skill on your machine.**
 一个仓库，统一管理本机所有 AI Agent 的 skill：导入、编辑、分组、分发、追踪、回滚。
 
-> 当前阶段：**M1 进行中**：SKILL.md 解析、目录导入、技能列表与详情已接通；发现扫描、ZIP 与分发待接入。
+> 当前阶段：**M1 进行中**：SKILL.md 解析、目录/ZIP 导入、技能编辑与快照、技能列表/详情已接通；发现扫描与分发待接入。
 
 ---
 
@@ -128,11 +128,12 @@ wails3 build
 ### M1 已接入
 
 - **SKILL.md 解析**：YAML frontmatter + Markdown 正文，校验 name / description / slug。
-- **目录导入**：原生目录选择 → 校验 → 复制到 `<vault>/skills/<slug>/` → 计算 SHA256 指纹 → 写入 SQLite。
+- **目录 / ZIP 导入**：原生选择器 → 校验 → 复制到 `<vault>/skills/<slug>/` → 计算 SHA256 指纹 → 写入 SQLite；ZIP 带 zip-slip 与体积限制。
 - **技能列表**：真实 `ListSkills` 数据，支持搜索、状态筛选、名称/时间/来源排序、列表/卡片切换、多选。
 - **技能详情**：右侧抽屉显示描述、路径、指纹、大小、文件列表，可打开技能目录。
+- **SKILL.md 编辑**：详情内直接编辑，保存前自动写旧版本快照；显示历史快照列表。
 - **示例技能**：`examples/demo-skill/`，可直接在应用里导入试用。
-- **尚未完成**：Agent 目录扫描 / Finding、ZIP/URL 导入、分发与项目/提示词实际数据。
+- **尚未完成**：Agent 目录扫描 / Finding、URL 导入、快照回滚、技能删除、分发与项目/提示词实际数据。
 
 ### M0 已落地
 

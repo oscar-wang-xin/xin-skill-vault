@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -206,9 +207,18 @@ type SkillItem struct {
 
 type SkillDetail struct {
 	SkillItem
-	Body      string            `json:"body"`
-	SourceRef string            `json:"sourceRef"`
-	Files     []vault.FileEntry `json:"files"`
+	Body          string            `json:"body"`
+	SourceRef     string            `json:"sourceRef"`
+	Files         []vault.FileEntry `json:"files"`
+	SnapshotCount int               `json:"snapshotCount"`
+}
+
+type SnapshotItem struct {
+	ID          string `json:"id"`
+	ContentHash string `json:"contentHash"`
+	FilePath    string `json:"filePath"`
+	Note        string `json:"note"`
+	CreatedAt   int64  `json:"createdAt"`
 }
 
 func (s *Service) ListSkills() ([]SkillItem, error) {
@@ -243,6 +253,9 @@ func (s *Service) GetSkillDetail(slug string) (*SkillDetail, error) {
 		return nil, err
 	}
 	detail.Files = files
+	if snapshots, err := vault.New(s.config.Current().VaultPath, s.store).Snapshots(slug); err == nil {
+		detail.SnapshotCount = len(snapshots)
+	}
 	return detail, nil
 }
 
@@ -259,6 +272,71 @@ func (s *Service) ImportSkillDirectory(source string) (SkillItem, error) {
 		s.logger.Info("skill imported", "slug", record.Slug, "source", record.SourceRef)
 	}
 	return skillItem(record), nil
+}
+
+// PickSkillArchive opens the native file picker for .zip / .skill packages.
+func (s *Service) PickSkillArchive() (string, error) {
+	if hostApp == nil {
+		return "", fmt.Errorf("应用尚未初始化")
+	}
+	path, err := hostApp.Dialog.OpenFile().
+		CanChooseFiles(true).
+		CanChooseDirectories(false).
+		AddFilter("Skill 包 (*.zip, *.skill)", "*.zip;*.skill").
+		SetTitle("选择技能压缩包").
+		PromptForSingleSelection()
+	if err != nil {
+		return "", fmt.Errorf("选择压缩包失败：%w", err)
+	}
+	return path, nil
+}
+
+func (s *Service) ImportSkillArchive(path string) (SkillItem, error) {
+	cfg := s.config.Current()
+	if err := EnsureLayout(cfg); err != nil {
+		return SkillItem{}, err
+	}
+	record, err := vault.New(cfg.VaultPath, s.store).ImportArchive(path)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if s.logger != nil {
+		s.logger.Info("skill archive imported", "slug", record.Slug, "source", record.SourceRef)
+	}
+	return skillItem(record), nil
+}
+
+func (s *Service) ReadSkillDocument(slug string) (string, error) {
+	return vault.New(s.config.Current().VaultPath, s.store).ReadDocument(slug)
+}
+
+func (s *Service) SaveSkillDocument(slug, content, note string) (SkillItem, error) {
+	if strings.TrimSpace(content) == "" {
+		return SkillItem{}, fmt.Errorf("SKILL.md 不能为空")
+	}
+	record, err := vault.New(s.config.Current().VaultPath, s.store).SaveDocument(slug, content, note)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if s.logger != nil {
+		s.logger.Info("skill document saved", "slug", slug)
+	}
+	return skillItem(record), nil
+}
+
+func (s *Service) ListSkillSnapshots(slug string) ([]SnapshotItem, error) {
+	records, err := vault.New(s.config.Current().VaultPath, s.store).Snapshots(slug)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]SnapshotItem, 0, len(records))
+	for _, record := range records {
+		items = append(items, SnapshotItem{
+			ID: record.ID, ContentHash: record.ContentHash,
+			FilePath: record.FilePath, Note: record.Note, CreatedAt: record.CreatedAt,
+		})
+	}
+	return items, nil
 }
 
 // PickSkillDirectory opens the native folder picker; an empty string means cancelled.
