@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, SaveConfigResult, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, SaveConfigResult, SkillDetail, SkillItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -42,7 +42,9 @@ let backendProbe: Promise<boolean> | null = null;
 async function hasBackend(): Promise<boolean> {
   if (typeof window === "undefined" || !(window as unknown as { _wails?: unknown })._wails) return false;
   if (!backendProbe) {
-    backendProbe = AppService.Timestamp().then(() => true).catch(() => false);
+    const probe = AppService.Timestamp().then(() => true).catch(() => false);
+    const timeout = new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 1500));
+    backendProbe = Promise.race([probe, timeout]);
   }
   return backendProbe;
 }
@@ -101,6 +103,34 @@ export async function openPromptFolder(): Promise<void> {
 export async function openConfigFolder(): Promise<void> {
   if (!(await hasBackend())) return;
   await AppService.OpenConfigFolder();
+}
+
+
+export async function listSkills(): Promise<SkillItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListSkills()) ?? [];
+}
+
+export async function getSkillDetail(slug: string): Promise<SkillDetail> {
+  if (!(await hasBackend())) throw new Error("技能详情需要桌面应用后端");
+  const detail = await AppService.GetSkillDetail(slug);
+  if (!detail) throw new Error("技能不存在");
+  return detail;
+}
+
+export async function pickSkillDirectory(): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导入技能需要桌面应用");
+  return AppService.PickSkillDirectory();
+}
+
+export async function importSkillDirectory(source: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("导入技能需要桌面应用后端");
+  return AppService.ImportSkillDirectory(source);
+}
+
+export async function openSkillFolder(slug: string): Promise<void> {
+  if (!(await hasBackend())) return;
+  await AppService.OpenSkillFolder(slug);
 }
 
 export function formatBytes(bytes: number): string {

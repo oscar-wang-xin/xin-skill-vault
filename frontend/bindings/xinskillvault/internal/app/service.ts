@@ -13,10 +13,6 @@ import * as config$0 from "../config/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function Close(): $CancellablePromise<void> {
-    return $Call.ByID(2362271982);
-}
-
 export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(3019495029);
 }
@@ -25,8 +21,20 @@ export function GetConfig(): $CancellablePromise<config$0.Config> {
     return $Call.ByID(911638184);
 }
 
+export function GetSkillDetail(slug: string): $CancellablePromise<$models.SkillDetail | null> {
+    return $Call.ByID(194884134, slug);
+}
+
 export function GetVaultSummary(): $CancellablePromise<$models.VaultSummary> {
     return $Call.ByID(1189148126);
+}
+
+export function ImportSkillDirectory(source: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(1879938159, source);
+}
+
+export function ListSkills(): $CancellablePromise<$models.SkillItem[] | null> {
+    return $Call.ByID(780397452);
 }
 
 export function OpenConfigFolder(): $CancellablePromise<void> {
@@ -37,8 +45,19 @@ export function OpenPromptFolder(): $CancellablePromise<void> {
     return $Call.ByID(1649222892);
 }
 
+export function OpenSkillFolder(slug: string): $CancellablePromise<void> {
+    return $Call.ByID(1320140527, slug);
+}
+
 export function OpenVaultFolder(): $CancellablePromise<void> {
     return $Call.ByID(4135195190);
+}
+
+/**
+ * PickSkillDirectory opens the native folder picker; an empty string means cancelled.
+ */
+export function PickSkillDirectory(): $CancellablePromise<string> {
+    return $Call.ByID(1268944339);
 }
 
 export function SaveConfig(next: config$0.Config): $CancellablePromise<$models.SaveConfigResult> {

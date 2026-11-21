@@ -3,7 +3,7 @@
 **One vault for every AI agent skill on your machine.**
 一个仓库，统一管理本机所有 AI Agent 的 skill：导入、编辑、分组、分发、追踪、回滚。
 
-> 当前阶段：**M0 工程骨架已跑通**；原型与开发计划在 `prototype/`、`docs/`，M1 开始接入仓库扫描与导入。
+> 当前阶段：**M1 进行中**：SKILL.md 解析、目录导入、技能列表与详情已接通；发现扫描、ZIP 与分发待接入。
 
 ---
 
@@ -125,6 +125,15 @@ go test ./...
 wails3 build
 ```
 
+### M1 已接入
+
+- **SKILL.md 解析**：YAML frontmatter + Markdown 正文，校验 name / description / slug。
+- **目录导入**：原生目录选择 → 校验 → 复制到 `<vault>/skills/<slug>/` → 计算 SHA256 指纹 → 写入 SQLite。
+- **技能列表**：真实 `ListSkills` 数据，支持搜索、状态筛选、名称/时间/来源排序、列表/卡片切换、多选。
+- **技能详情**：右侧抽屉显示描述、路径、指纹、大小、文件列表，可打开技能目录。
+- **示例技能**：`examples/demo-skill/`，可直接在应用里导入试用。
+- **尚未完成**：Agent 目录扫描 / Finding、ZIP/URL 导入、分发与项目/提示词实际数据。
+
 ### M0 已落地
 
 - Wails v3 + Vue 3 + TypeScript + Vite + Pinia + Vue Router。
@@ -135,6 +144,10 @@ wails3 build
 - AppShell：侧栏、顶栏、主题下拉、拟态开关、命令面板、6 个页面路由。
 - 浏览器预览无 Wails 后端时自动使用 demo 配置，不写真实文件。
 
+### 试用
+
+启动 `wails3 task dev` 后，在技能库点击「导入」，选择仓库下的 `examples/demo-skill/`。导入完成后应看到 `Demo Skill` 卡片，并在详情抽屉看到 `SKILL.md` 与 `references/checklist.md`。
+
 ### 目录
 
 ```text
@@ -144,6 +157,7 @@ internal/store          SQLite 打开、迁移、索引查询
 internal/app            Wails 服务、目录布局、打开文件夹
 internal/logx           结构化日志
 frontend/src            Vue AppShell、路由、页面、样式
+examples/               可导入的示例 SKILL.md
 prototype/              高保真原型（设计基线）
 docs/                   开发计划、架构、评审报告
 ```

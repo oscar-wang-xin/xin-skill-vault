@@ -63,7 +63,7 @@ func main() {
 			"version": version.AppVersion,
 		},
 		OnShutdown: func() {
-			if err := service.Close(); err != nil {
+			if err := st.Close(); err != nil {
 				logger.Error("close database", "error", err)
 			}
 		},
@@ -83,6 +83,8 @@ func main() {
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
 	})
+
+	appcore.SetApplication(wailsApp)
 
 	if err := wailsApp.Run(); err != nil {
 		logger.Error("application exited", "error", err)

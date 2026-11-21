@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { getAppInfo, getVaultSummary, openVaultFolder, errorMessage } from "../lib/api";
-import type { AppInfo, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import { openVaultFolder, errorMessage } from "../lib/api";
+import type { VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import { themes, useUiStore } from "../stores/ui";
+import { useVaultStore } from "../stores/vault";
 import Icon from "./Icon.vue";
 import CommandPalette from "./CommandPalette.vue";
 
 const ui = useUiStore();
 const route = useRoute();
-const info = ref<AppInfo | null>(null);
-const summary = ref<VaultSummary | null>(null);
-const loading = ref(true);
+const vault = useVaultStore();
 const toast = ref("");
 let toastTimer: number | undefined;
 
@@ -26,11 +25,11 @@ const systemNav = [{ path: "/settings", label: "设置", icon: "settings" }];
 
 const pageTitle = computed(() => String(route.meta?.title ?? "技能库"));
 const pageGroup = computed(() => String(route.meta?.group ?? "工作区"));
-const repoPath = computed(() => summary.value?.vaultPath ?? info.value?.vaultPath ?? "~/.skill-repo");
+const repoPath = computed(() => vault.summary?.vaultPath ?? vault.info?.vaultPath ?? "~/.skill-repo");
 
 function countFor(key: string): string {
-  if (!key || !summary.value) return "";
-  const value = summary.value[key as keyof VaultSummary];
+  if (!key || !vault.summary) return "";
+  const value = vault.summary[key as keyof VaultSummary];
   return typeof value === "number" && value > 0 ? String(value) : "";
 }
 
@@ -38,20 +37,6 @@ function showToast(message: string) {
   toast.value = message;
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => { toast.value = ""; }, 2400);
-}
-
-async function load() {
-  loading.value = true;
-  try {
-    const [nextInfo, nextSummary] = await Promise.all([getAppInfo(), getVaultSummary()]);
-    info.value = nextInfo;
-    summary.value = nextSummary;
-    if (nextInfo.name) document.title = nextInfo.name;
-  } catch (error) {
-    showToast(`初始化失败：${errorMessage(error)}`);
-  } finally {
-    loading.value = false;
-  }
 }
 
 async function openRepo() {
@@ -85,8 +70,9 @@ function onKeydown(event: KeyboardEvent) {
 
 watch(() => route.path, () => { ui.themeMenuOpen = false; });
 
-onMounted(() => {
-  load();
+onMounted(async () => {
+  await vault.refresh();
+  if (vault.error) showToast(`初始化失败：${vault.error}`);
   window.addEventListener("click", onWindowClick);
   window.addEventListener("keydown", onKeydown);
 });
@@ -134,8 +120,8 @@ onUnmounted(() => {
           </div>
           <span class="repo-mini-path mono">{{ repoPath }}</span>
           <div class="repo-mini-meta">
-            <span>{{ summary?.skillCount ?? 0 }} 个技能</span>
-            <span>v{{ info?.version ?? "0.1.0" }}</span>
+            <span>{{ vault.summary?.skillCount ?? 0 }} 个技能</span>
+            <span>v{{ vault.info?.version ?? "0.1.0" }}</span>
           </div>
         </button>
       </div>
@@ -186,14 +172,7 @@ onUnmounted(() => {
       </header>
 
       <div class="content">
-        <RouterView v-if="!loading" />
-        <div v-else class="page">
-          <div class="empty">
-            <div class="empty-ico"><Icon name="database" :size="18" /></div>
-            <h3>正在准备本地索引…</h3>
-            <p>检查仓库目录、SQLite 迁移与配置。</p>
-          </div>
-        </div>
+        <RouterView />
       </div>
     </main>
 

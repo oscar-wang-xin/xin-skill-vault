@@ -9,8 +9,12 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"xinskillvault/internal/config"
+	"xinskillvault/internal/skill"
 	"xinskillvault/internal/store"
+	"xinskillvault/internal/vault"
 	"xinskillvault/internal/version"
 )
 
@@ -23,6 +27,13 @@ type Service struct {
 	config *config.Manager
 	store  *store.Store
 	logger *slog.Logger
+}
+
+var hostApp *application.App
+
+// SetApplication makes the Wails app available for native dialogs without binding it to the frontend.
+func SetApplication(app *application.App) {
+	hostApp = app
 }
 
 type AppInfo struct {
@@ -169,11 +180,128 @@ func openFolder(path string) error {
 	return nil
 }
 
-func (s *Service) Close() error {
-	return s.store.Close()
-}
-
 // Timestamp is exposed for frontend boot diagnostics.
 func (s *Service) Timestamp() string {
 	return time.Now().UTC().Format(time.RFC3339)
+}
+
+type SkillItem struct {
+	ID          string   `json:"id"`
+	Slug        string   `json:"slug"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Version     string   `json:"version"`
+	Author      string   `json:"author"`
+	License     string   `json:"license"`
+	Icon        string   `json:"icon"`
+	Path        string   `json:"path"`
+	SizeBytes   int64    `json:"sizeBytes"`
+	FileCount   int      `json:"fileCount"`
+	Enabled     bool     `json:"enabled"`
+	SourceType  string   `json:"sourceType"`
+	ContentHash string   `json:"contentHash"`
+	UpdatedAt   int64    `json:"updatedAt"`
+	Tags        []string `json:"tags"`
+}
+
+type SkillDetail struct {
+	SkillItem
+	Body      string            `json:"body"`
+	SourceRef string            `json:"sourceRef"`
+	Files     []vault.FileEntry `json:"files"`
+}
+
+func (s *Service) ListSkills() ([]SkillItem, error) {
+	records, err := s.store.ListSkills()
+	if err != nil {
+		return nil, err
+	}
+	items := make([]SkillItem, 0, len(records))
+	for _, record := range records {
+		items = append(items, skillItem(record))
+	}
+	return items, nil
+}
+
+func (s *Service) GetSkillDetail(slug string) (*SkillDetail, error) {
+	record, err := s.store.FindSkillBySlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	if record == nil {
+		return nil, fmt.Errorf("技能不存在：%s", slug)
+	}
+	item := skillItem(*record)
+	detail := &SkillDetail{SkillItem: item}
+	parsed, err := skill.ParseDir(filepath.Join(s.config.Current().VaultPath, filepath.FromSlash(record.Path)))
+	if err == nil {
+		detail.Body = parsed.Body
+		detail.Tags = parsed.Meta.Tags
+	}
+	files, err := vault.New(s.config.Current().VaultPath, s.store).SkillFiles(slug)
+	if err != nil {
+		return nil, err
+	}
+	detail.Files = files
+	return detail, nil
+}
+
+func (s *Service) ImportSkillDirectory(source string) (SkillItem, error) {
+	cfg := s.config.Current()
+	if err := EnsureLayout(cfg); err != nil {
+		return SkillItem{}, err
+	}
+	record, err := vault.New(cfg.VaultPath, s.store).ImportDirectory(source)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if s.logger != nil {
+		s.logger.Info("skill imported", "slug", record.Slug, "source", record.SourceRef)
+	}
+	return skillItem(record), nil
+}
+
+// PickSkillDirectory opens the native folder picker; an empty string means cancelled.
+func (s *Service) PickSkillDirectory() (string, error) {
+	if hostApp == nil {
+		return "", fmt.Errorf("应用尚未初始化")
+	}
+	path, err := hostApp.Dialog.OpenFile().
+		CanChooseFiles(false).
+		CanChooseDirectories(true).
+		SetTitle("选择包含 SKILL.md 的技能目录").
+		PromptForSingleSelection()
+	if err != nil {
+		return "", fmt.Errorf("选择目录失败：%w", err)
+	}
+	return path, nil
+}
+
+func (s *Service) OpenSkillFolder(slug string) error {
+	dir, err := vault.New(s.config.Current().VaultPath, s.store).SkillDir(slug)
+	if err != nil {
+		return err
+	}
+	return openFolder(dir)
+}
+
+func skillItem(record store.SkillRecord) SkillItem {
+	return SkillItem{
+		ID:          record.ID,
+		Slug:        record.Slug,
+		Name:        record.Name,
+		Description: record.Description,
+		Version:     record.Version,
+		Author:      record.Author,
+		License:     record.License,
+		Icon:        record.Icon,
+		Path:        record.Path,
+		SizeBytes:   record.SizeBytes,
+		FileCount:   record.FileCount,
+		Enabled:     record.Enabled,
+		SourceType:  record.SourceType,
+		ContentHash: record.ContentHash,
+		UpdatedAt:   record.UpdatedAt,
+		Tags:        []string{},
+	}
 }

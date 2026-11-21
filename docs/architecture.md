@@ -73,7 +73,25 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - [x] 6 个路由、主题/拟态、命令面板、配置保存
 - [x] CI 工作流（Go + 前端）
 
-## 7. 下一步（M1）
+## 7. M1 进度
+
+已接通：
+
+- `internal/skill`：SKILL.md frontmatter/正文解析与校验
+- `internal/vault`：目录导入、SHA256 指纹、原子复制、文件清单
+- `internal/store/skills.go`：技能创建/按 slug 查询/列表
+- Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `OpenSkillFolder`
+- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、导入按钮
+- 示例：`examples/demo-skill/`
+
+尚未完成：
+
+- Agent 目录扫描与 Finding（M2）
+- ZIP/URL 导入
+- 分发、项目、提示词实际数据
+- 技能编辑与版本快照
+
+## 8. 下一步（M1 剩余 + M2）
 
 1. SKILL.md 解析与校验。
 2. 扫描本机 Agent 目录，生成 Finding。

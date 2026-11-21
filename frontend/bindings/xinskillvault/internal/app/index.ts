@@ -9,5 +9,7 @@ export {
 export type {
     AppInfo,
     SaveConfigResult,
+    SkillDetail,
+    SkillItem,
     VaultSummary
 } from "./models.js";
