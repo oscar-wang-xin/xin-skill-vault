@@ -8,6 +8,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as config$0 from "../config/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as scan$0 from "../scan/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -37,6 +40,10 @@ export function GetVaultSummary(): $CancellablePromise<$models.VaultSummary> {
     return $Call.ByID(1189148126);
 }
 
+export function ImportScannedSkill(agentID: string, source: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(1505055026, agentID, source);
+}
+
 export function ImportSkillArchive(path: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(2663609914, path);
 }
@@ -51,6 +58,10 @@ export function ListSkillSnapshots(slug: string): $CancellablePromise<$models.Sn
 
 export function ListSkills(): $CancellablePromise<$models.SkillItem[] | null> {
     return $Call.ByID(780397452);
+}
+
+export function OpenAgentFolder(agentID: string): $CancellablePromise<void> {
+    return $Call.ByID(669917403, agentID);
 }
 
 export function OpenConfigFolder(): $CancellablePromise<void> {
@@ -97,6 +108,10 @@ export function SaveConfig(next: config$0.Config): $CancellablePromise<$models.S
 
 export function SaveSkillDocument(slug: string, content: string, note: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1775529333, slug, content, note);
+}
+
+export function ScanAgents(): $CancellablePromise<scan$0.Result> {
+    return $Call.ByID(1340619965);
 }
 
 export function SetSkillEnabled(slug: string, enabled: boolean): $CancellablePromise<$models.SkillItem> {

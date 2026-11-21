@@ -1,5 +1,6 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
 import type { AppInfo, SaveConfigResult, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -178,6 +179,24 @@ export async function restoreSkillSnapshot(slug: string, snapshotID: string): Pr
 export async function deleteSkillSnapshot(slug: string, snapshotID: string): Promise<void> {
   if (!(await hasBackend())) throw new Error("删除快照需要桌面应用");
   await AppService.DeleteSkillSnapshot(slug, snapshotID);
+}
+
+
+export async function scanAgents(): Promise<ScanResult> {
+  if (!(await hasBackend())) {
+    return { scannedAt: 0, agents: [], findings: [], errors: [], scannedSkills: 0 };
+  }
+  return AppService.ScanAgents();
+}
+
+export async function importScannedSkill(agentID: string, source: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("导入扫描技能需要桌面应用");
+  return AppService.ImportScannedSkill(agentID, source);
+}
+
+export async function openAgentFolder(agentID: string): Promise<void> {
+  if (!(await hasBackend())) return;
+  await AppService.OpenAgentFolder(agentID);
 }
 
 export function formatBytes(bytes: number): string {

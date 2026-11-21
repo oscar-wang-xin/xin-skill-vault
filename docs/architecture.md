@@ -55,6 +55,9 @@ Wails v3 application
 | `SetSkillEnabled` / `DeleteSkill` | 启用/禁用、移动到回收站、软删除索引 |
 | `RestoreSkillSnapshot` / `DeleteSkillSnapshot` | 恢复/删除历史快照（恢复前会再写快照） |
 | `OpenSkillFolder` | 打开单个技能目录 |
+| `ScanAgents` | 检测 Agent 目录、扫描技能并返回 Finding |
+| `ImportScannedSkill` | 从扫描结果导入单个技能（来源记为 scan） |
+| `OpenAgentFolder` | 打开 Agent skill 目录 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -66,8 +69,8 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 ## 5. 前端边界
 
 - **M0 AppShell**：侧栏、顶栏、主题下拉、拟态开关、命令面板、6 个路由。
-- **真实数据**：技能库从 `GetVaultSummary` 读取计数；当前为空状态。
-- **未接入页面**：市场（M3）、Agent（M2）、项目（M2）、提示词（M4）显示阶段占位，不伪造数据。
+- **真实数据**：技能库读取 `GetVaultSummary` / `ListSkills`；发现页读取 `ScanAgents`；Agent 页读取扫描结果。
+- **未接入页面**：市场（M3）、项目（M2 分发后）、提示词（M4）显示阶段占位，不伪造数据。
 - **浏览器预览**：`api.ts` 先调用 `Timestamp` 探测后端；失败时使用 localStorage demo 配置，不写真实文件。
 - **主题与拟态**：localStorage 立即生效；设置页保存时写入后端 config。
 
@@ -89,22 +92,24 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - `internal/vault`：目录/ZIP 导入、SHA256 指纹、原子复制、文件清单、SKILL.md 快照保存
 - `internal/store/skills.go`：技能创建/按 slug 查询/列表/更新/快照
 - Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
+- `internal/agent`：11 个内置 Agent 适配器与目录检测
+- `internal/scan`：单层技能扫描、hash 比对、new/changed Finding、错误收集
 - 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
+- 前端发现页 / Agent 页：真实扫描、筛选、导入、目录打开
 - 示例：`examples/demo-skill/`
 
 尚未完成：
 
-- Agent 目录扫描与 Finding（M2）
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
+- M2 分发（symlink/junction/copy）、manifest、漂移检测
 
-## 8. 下一步（M1 剩余 + M2）
+## 8. 下一步
 
-1. SKILL.md 解析与校验。
-2. 扫描本机 Agent 目录，生成 Finding。
-3. 导入目录/ZIP 到 `skills/<slug>/`，写入指纹与快照。
-4. 技能库列表/详情抽屉接真实数据。
-5. 搜索、筛选、排序与批量选择。
+1. 扫描结果的覆盖更新（先生成快照再替换）。
+2. Agent 分发：symlink / junction / copy 降级、`.skillrepo-manifest.json`。
+3. 分发弹层与项目模块数据。
+4. 漂移检测与批量修复。
 
 详细规格见 `docs/dev-plan.md` §4、§16。

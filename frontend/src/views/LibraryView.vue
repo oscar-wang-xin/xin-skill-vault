@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
+import DiscoverPanel from "./DiscoverPanel.vue";
 import {
   errorMessage,
   formatBytes,
@@ -535,14 +536,12 @@ onUnmounted(() => {
       </div>
     </template>
 
+    <DiscoverPanel v-else-if="tab === 'scan'" @imported="loadSkills" />
+
     <div v-else class="empty">
-      <div class="empty-ico"><Icon :name="tab === 'scan' ? 'search' : 'layers'" :size="18" /></div>
-      <h3>{{ tab === "scan" ? "发现" : "组合" }}将在 M1–M2 接入</h3>
-      <p>
-        {{ tab === "scan"
-          ? "扫描本机 Agent 目录、识别未导入/有变更技能，并支持忽略与恢复。"
-          : "把技能编成组合，支持搜索、排序、编辑与一键分发。" }}
-      </p>
+      <div class="empty-ico"><Icon name="layers" :size="18" /></div>
+      <h3>组合将在 M1–M2 接入</h3>
+      <p>把技能编成组合，支持搜索、排序、编辑与一键分发。</p>
       <button class="btn ghost" @click="tab = 'mine'">返回 Skill 仓库</button>
     </div>
 

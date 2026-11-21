@@ -12,7 +12,9 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"xinskillvault/internal/agent"
 	"xinskillvault/internal/config"
+	"xinskillvault/internal/scan"
 	"xinskillvault/internal/skill"
 	"xinskillvault/internal/store"
 	"xinskillvault/internal/vault"
@@ -413,4 +415,71 @@ func (s *Service) RestoreSkillSnapshot(slug, snapshotID string) (SkillItem, erro
 
 func (s *Service) DeleteSkillSnapshot(slug, snapshotID string) error {
 	return vault.New(s.config.Current().VaultPath, s.store).DeleteSnapshot(slug, snapshotID)
+}
+
+func (s *Service) ScanAgents() (scan.Result, error) {
+	return scan.Scan(agent.Defaults(), s.store), nil
+}
+
+func (s *Service) ImportScannedSkill(agentID, source string) (SkillItem, error) {
+	adapters := agent.Defaults()
+	var found *agent.Adapter
+	for i := range adapters {
+		if adapters[i].ID == agentID {
+			found = &adapters[i]
+			break
+		}
+	}
+	if found == nil || !found.Detected {
+		return SkillItem{}, fmt.Errorf("Agent 不存在或未检测到")
+	}
+	abs, err := filepath.Abs(source)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	if !withinPath(found.Path, abs) {
+		return SkillItem{}, fmt.Errorf("技能路径不在该 Agent 目录内")
+	}
+	cfg := s.config.Current()
+	record, err := vault.New(cfg.VaultPath, s.store).ImportDirectory(abs)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	record.SourceType = "scan"
+	record.SourceRef = abs
+	if err := s.store.UpdateSkill(record); err != nil {
+		return SkillItem{}, err
+	}
+	if s.logger != nil {
+		s.logger.Info("scanned skill imported", "slug", record.Slug, "agent", agentID)
+	}
+	return skillItem(record), nil
+}
+
+func (s *Service) OpenAgentFolder(agentID string) error {
+	for _, adapter := range agent.Defaults() {
+		if adapter.ID == agentID {
+			if !adapter.Detected {
+				return fmt.Errorf("Agent 目录不存在")
+			}
+			return openFolder(adapter.Path)
+		}
+	}
+	return fmt.Errorf("Agent 不存在")
+}
+
+func withinPath(root, target string) bool {
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return false
+	}
+	targetAbs, err := filepath.Abs(target)
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(rootAbs, targetAbs)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }

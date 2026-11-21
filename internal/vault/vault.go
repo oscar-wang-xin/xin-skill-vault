@@ -639,3 +639,8 @@ func (v *Vault) DeleteSnapshot(slug, snapshotID string) error {
 	_ = os.Remove(snapshot.FilePath)
 	return nil
 }
+
+// FingerprintDir exposes the same deterministic hash used by imports.
+func FingerprintDir(root string) (string, int64, int, error) {
+	return hashTree(root)
+}
