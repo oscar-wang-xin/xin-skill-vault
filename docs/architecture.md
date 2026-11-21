@@ -79,6 +79,7 @@ Wails v3 application
 | `RenameTag` / `DeleteTag` / `MergeTags` | 标签词典维护与合并（UI 已接重命名/删除/合并） |
 | `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
 | `ExportSkillPackage` / `ExportSkillsBundle` | 导出单个 `.skill` 或多技能 Bundle zip |
+| `ExportDiagnostics` | 导出诊断 zip：诊断 JSON、配置、日志、README |
 | `PickBundleArchive` / `ImportBundleArchive` | 选择并导入 Bundle：解析 bundle.json、逐个技能入库 |
 | `ListBundles` / `CreateBundle` / `UpdateBundle` / `DeleteBundle` | 持久化 Bundle CRUD |
 | `ListBundleSkills` / `ExportBundle` | Bundle 技能引用与重复导出 |

@@ -4,6 +4,7 @@ import Icon from "../components/Icon.vue";
 import {
   createPrompt,
   createPromptCategory,
+  deletePromptCategory,
   deletePromptVersion,
   errorMessage,
   getPrompt,
@@ -350,6 +351,25 @@ function openCategory(item?: PromptCategoryItem) {
   categoryModal.value = true;
 }
 
+async function removeCategory() {
+  if (!categoryEditingID.value || categoryBusy.value) return;
+  const record = categories.value.find((item) => item.id === categoryEditingID.value);
+  if (!record) return;
+  if (!window.confirm(`删除分类「${record.name}」？分类下的提示词会变为未分类，文件不会删除。`)) return;
+  categoryBusy.value = true;
+  try {
+    await deletePromptCategory(record.id);
+    categoryModal.value = false;
+    if (selectedCategory.value === record.id) selectedCategory.value = "all";
+    await refresh();
+    showToast("分类已删除");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    categoryBusy.value = false;
+  }
+}
+
 async function saveCategory() {
   if (!categoryName.value.trim() || categoryBusy.value) return;
   categoryBusy.value = true;
@@ -611,7 +631,10 @@ onMounted(async () => {
           </select>
         </label>
         <label v-if="!categoryEditingID" class="field"><span>保存目录 <em>相对提示词根目录，可留空</em></span><input v-model="categoryDir" class="input mono" placeholder="留空自动按名称创建" /></label>
+        <p v-if="categoryEditingID" class="category-warning">删除分类不会删除提示词文件，提示词会变为未分类。</p>
         <div class="prompt-confirm-foot">
+          <button v-if="categoryEditingID" class="btn danger" :disabled="categoryBusy" @click="removeCategory">删除分类</button>
+          <span class="grow" />
           <button class="btn" :disabled="categoryBusy" @click="categoryModal = false">取消</button>
           <button class="btn primary" :disabled="categoryBusy" @click="saveCategory">{{ categoryBusy ? "保存中…" : "保存" }}</button>
         </div>
@@ -695,6 +718,7 @@ onMounted(async () => {
 .prompt-confirm-card p { margin: 0; color: var(--text-3); font-size: 11px; line-height: 1.6; }
 .prompt-confirm-foot { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .category-card { gap: 10px; }
+.category-warning { margin: 0; color: var(--danger) !important; font-size: 9.5px !important; }
 .empty-mini { padding: 24px; text-align: center; color: var(--text-4); font-size: 10px; }
 @media (max-width: 900px) { .prompt-layout { grid-template-columns: 180px minmax(0, 1fr); } .prompt-drawer { width: 94vw; min-width: 0; } .pd-body { grid-template-columns: 1fr !important; } .pd-resizer { display: none; } .pd-versions { border-left: 0; border-top: 1px solid var(--border-soft); max-height: 250px; } }
 </style>

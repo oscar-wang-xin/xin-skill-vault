@@ -98,6 +98,10 @@ export function ExportBundle(id: string): $CancellablePromise<string> {
     return $Call.ByID(2148280296, id);
 }
 
+export function ExportDiagnostics(): $CancellablePromise<string> {
+    return $Call.ByID(4139620804);
+}
+
 export function ExportSkillPackage(slug: string): $CancellablePromise<string> {
     return $Call.ByID(4024737571, slug);
 }

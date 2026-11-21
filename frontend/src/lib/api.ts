@@ -498,6 +498,12 @@ export async function exportBundle(id: string): Promise<string> {
   return AppService.ExportBundle(id);
 }
 
+
+export async function exportDiagnostics(): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导出诊断包需要桌面应用");
+  return AppService.ExportDiagnostics();
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

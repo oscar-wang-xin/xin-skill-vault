@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import {
   errorMessage,
+  exportDiagnostics,
   getAppInfo,
   getConfig,
   openConfigFolder,
@@ -25,6 +26,7 @@ const config = ref<Config>({
 });
 const loading = ref(true);
 const saving = ref(false);
+const diagnosticsBusy = ref(false);
 const notice = ref("");
 
 function showNotice(message: string) {
@@ -44,6 +46,19 @@ async function load() {
     showNotice(errorMessage(error));
   } finally {
     loading.value = false;
+  }
+}
+
+async function diagnosticsExport() {
+  if (diagnosticsBusy.value) return;
+  diagnosticsBusy.value = true;
+  try {
+    const path = await exportDiagnostics();
+    if (path) notice.value = `诊断包已导出：${path}`;
+  } catch (error) {
+    notice.value = errorMessage(error);
+  } finally {
+    diagnosticsBusy.value = false;
   }
 }
 
@@ -145,6 +160,7 @@ onMounted(load);
     <section class="card set-card">
       <div class="set-head">
         <div><h2>运行信息</h2><p>前端与本地索引的启动状态。</p></div>
+        <button class="btn" :disabled="diagnosticsBusy" @click="diagnosticsExport"><Icon name="download" :size="12" /> {{ diagnosticsBusy ? "导出中…" : "导出诊断包" }}</button>
       </div>
       <div class="kv-grid">
         <div class="kv"><span>版本</span><b>{{ info?.version ?? "0.1.0" }}</b></div>
