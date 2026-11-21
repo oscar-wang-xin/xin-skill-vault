@@ -90,6 +90,10 @@ export function ExportSkillPackage(slug: string): $CancellablePromise<string> {
     return $Call.ByID(4024737571, slug);
 }
 
+export function ExportSkillsBundle(name: string, slugs: string[] | null): $CancellablePromise<string> {
+    return $Call.ByID(363447474, name, slugs);
+}
+
 export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(3019495029);
 }

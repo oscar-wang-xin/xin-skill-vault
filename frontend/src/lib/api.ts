@@ -449,6 +449,12 @@ export async function mergeTags(sourceID: string, targetID: string): Promise<voi
   await AppService.MergeTags(sourceID, targetID);
 }
 
+
+export async function exportSkillsBundle(name: string, slugs: string[]): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导出 Bundle 需要桌面应用");
+  return AppService.ExportSkillsBundle(name, slugs);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

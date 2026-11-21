@@ -77,7 +77,7 @@ Wails v3 application
 | `ListTags` / `SetSkillTags` | 标签词典与技能标签 |
 | `RenameTag` / `DeleteTag` / `MergeTags` | 标签词典维护与合并 |
 | `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
-| `ExportSkillPackage` | 原生保存对话框导出 `.skill`（zip + manifest） |
+| `ExportSkillPackage` / `ExportSkillsBundle` | 导出单个 `.skill` 或多技能 Bundle zip |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：

@@ -11,6 +11,7 @@ import {
   deleteSkill,
   deleteSkillSnapshot,
   exportSkillPackage,
+  exportSkillsBundle,
   getSkillDetail,
   getSkillNote,
   importSkillArchive,
@@ -72,6 +73,9 @@ const tagEditingID = ref<string | null>(null);
 const tagEditName = ref("");
 const tagBusy = ref(false);
 const exporting = ref(false);
+const bundleModal = ref(false);
+const bundleName = ref("skills-bundle");
+const bundleBusy = ref(false);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -352,6 +356,27 @@ async function restoreSnapshot(snapshot: SnapshotItem) {
   }
 }
 
+function openBundle() {
+  if (!checked.value.size) return;
+  bundleName.value = "skills-bundle";
+  bundleModal.value = true;
+}
+
+async function saveBundle() {
+  if (!checked.value.size || bundleBusy.value) return;
+  bundleBusy.value = true;
+  try {
+    const slugs = [...checked.value];
+    const path = await exportSkillsBundle(bundleName.value, slugs);
+    bundleModal.value = false;
+    if (path) showToast(`Bundle 已导出：${path}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    bundleBusy.value = false;
+  }
+}
+
 function openDistribute() {
   if (!detail.value) return;
   distributeItems.value = [{ slug: detail.value.slug, name: detail.value.name }];
@@ -576,6 +601,9 @@ onUnmounted(() => {
           <div class="grow" />
           <button class="btn primary" :disabled="checked.size === 0" :title="checked.size === 0 ? '勾选技能后批量分发' : `分发已选 ${checked.size} 个技能`" @click="openBatchDistribute">
             <Icon name="link" :size="13" /> 分发{{ checked.size ? ` ${checked.size}` : "" }}
+          </button>
+          <button class="btn" :disabled="checked.size === 0" title="把已选技能打包为 Bundle" @click="openBundle">
+            <Icon name="download" :size="12" /> 打包{{ checked.size ? ` ${checked.size}` : "" }}
           </button>
           <button class="btn" :disabled="importing" title="从本地目录导入包含 SKILL.md 的技能" @click="importSkill">
             <Icon name="upload" :size="14" />
@@ -822,6 +850,20 @@ onUnmounted(() => {
         </template>
       </footer>
     </aside>
+
+    <div v-if="bundleModal" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card">
+        <div class="confirm-head">
+          <div><h3>导出 Bundle</h3><p>把已选 {{ checked.size }} 个技能打包为一个 zip，包含 `bundle.json` 与 skills/ 目录。</p></div>
+          <button class="icon-btn" :disabled="bundleBusy" @click="bundleModal = false"><Icon name="x" :size="15" /></button>
+        </div>
+        <div style="padding: 0 14px 12px"><input v-model="bundleName" class="input" placeholder="Bundle 名称" /></div>
+        <div class="confirm-foot">
+          <button class="btn" :disabled="bundleBusy" @click="bundleModal = false">取消</button>
+          <button class="btn primary" :disabled="bundleBusy" @click="saveBundle">{{ bundleBusy ? "导出中…" : "选择位置并导出" }}</button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="tagManager" class="confirm-overlay" @click.self.stop>
       <div class="confirm-card tag-manager">
