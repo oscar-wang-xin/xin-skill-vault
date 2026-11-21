@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0e9f74" /></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-0e9f74" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.1-0e9f74" />
 </p>
 
 ---
@@ -100,7 +100,7 @@ Xin Skill Vault 把这些目录收拢成一个本地仓库：
 从 [Releases](https://github.com/oscar-wang-xin/xin-skill-vault/releases) 下载：
 
 ```text
-XinSkillVault-0.1.0-win-x64.zip
+XinSkillVault-0.1.1-win-x64.zip
 ```
 
 解压后运行：
@@ -136,13 +136,13 @@ wails3 build
 Windows 免安装包：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.0
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.1
 ```
 
 产物：
 
 ```text
-bin/release/XinSkillVault-0.1.0-win-x64.zip
+bin/release/XinSkillVault-0.1.1-win-x64.zip
 ```
 
 ## 数据与隐私
