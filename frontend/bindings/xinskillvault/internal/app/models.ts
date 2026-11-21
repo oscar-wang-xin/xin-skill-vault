@@ -17,6 +17,25 @@ export interface AppInfo {
     "schemaVersion": number;
 }
 
+export interface ComboItem {
+    "id": string;
+    "name": string;
+    "description": string;
+    "icon": string;
+    "color": string;
+    "skillCount": number;
+    "slugs": string[] | null;
+    "createdAt": number;
+}
+
+export interface ComboSkillItem {
+    "slug": string;
+    "name": string;
+    "description": string;
+    "version": string;
+    "enabled": boolean;
+}
+
 export interface DistributionTarget {
     "id": string;
     "name": string;

@@ -8,6 +8,8 @@ export {
 
 export type {
     AppInfo,
+    ComboItem,
+    ComboSkillItem,
     DistributionTarget,
     ProjectAgentItem,
     ProjectBulkResult,

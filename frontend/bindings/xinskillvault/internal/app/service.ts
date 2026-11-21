@@ -34,8 +34,16 @@ export function CheckDrift(): $CancellablePromise<distribute$0.Report[] | null> 
     return $Call.ByID(148441865);
 }
 
+export function CreateCombo(name: string, description: string, icon: string, slugs: string[] | null): $CancellablePromise<$models.ComboItem> {
+    return $Call.ByID(635864016, name, description, icon, slugs);
+}
+
 export function CreateProject(name: string, path: string, description: string, agentIDs: string[] | null): $CancellablePromise<$models.ProjectItem> {
     return $Call.ByID(2954230071, name, path, description, agentIDs);
+}
+
+export function DeleteCombo(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3107817225, id);
 }
 
 export function DeleteProject(id: string): $CancellablePromise<void> {
@@ -84,6 +92,14 @@ export function ImportSkillDirectory(source: string): $CancellablePromise<$model
 
 export function InstallMarketSkill(source: string, slug: string, $namespace: string, force: boolean): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(3926582246, source, slug, $namespace, force);
+}
+
+export function ListComboSkills(id: string): $CancellablePromise<$models.ComboSkillItem[] | null> {
+    return $Call.ByID(3837742562, id);
+}
+
+export function ListCombos(): $CancellablePromise<$models.ComboItem[] | null> {
+    return $Call.ByID(396222929);
 }
 
 export function ListDistributionTargets(slug: string): $CancellablePromise<$models.DistributionTarget[] | null> {
@@ -213,6 +229,10 @@ export function Timestamp(): $CancellablePromise<string> {
 
 export function UninstallSkill(slug: string, agentID: string): $CancellablePromise<void> {
     return $Call.ByID(1224419401, slug, agentID);
+}
+
+export function UpdateCombo(id: string, name: string, description: string, icon: string, slugs: string[] | null): $CancellablePromise<$models.ComboItem> {
+    return $Call.ByID(2499294691, id, name, description, icon, slugs);
 }
 
 export function UpdateProject(id: string, name: string, description: string): $CancellablePromise<$models.ProjectItem> {

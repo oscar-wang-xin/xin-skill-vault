@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
@@ -322,6 +322,32 @@ export async function auditMarketSkill(source: string, slug: string, namespace: 
 export async function installMarketSkill(source: string, slug: string, namespace: string, force = false): Promise<SkillItem> {
   if (!(await hasBackend())) throw new Error("安装市场技能需要桌面应用");
   return AppService.InstallMarketSkill(source, slug, namespace, force);
+}
+
+
+export async function listCombos(): Promise<ComboItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListCombos()) ?? [];
+}
+
+export async function createCombo(name: string, description: string, icon: string, slugs: string[]): Promise<ComboItem> {
+  if (!(await hasBackend())) throw new Error("新建组合需要桌面应用");
+  return AppService.CreateCombo(name, description, icon, slugs);
+}
+
+export async function updateCombo(id: string, name: string, description: string, icon: string, slugs: string[]): Promise<ComboItem> {
+  if (!(await hasBackend())) throw new Error("编辑组合需要桌面应用");
+  return AppService.UpdateCombo(id, name, description, icon, slugs);
+}
+
+export async function deleteCombo(id: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除组合需要桌面应用");
+  await AppService.DeleteCombo(id);
+}
+
+export async function listComboSkills(id: string): Promise<ComboSkillItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListComboSkills(id)) ?? [];
 }
 
 export function formatBytes(bytes: number): string {

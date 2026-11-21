@@ -69,6 +69,8 @@ Wails v3 application
 | `ListMarketSources` | 内置市场源与健康/限制说明 |
 | `SearchMarket` / `InstallMarketSkill` | SkillHub / skills.sh 搜索、分页、缓存、分类、审计后导入，来源记为 market |
 | `ListMarketCategories` / `AuditMarketSkill` | SkillHub 分类；安装包脚本/危险命令审计 |
+| `ListCombos` / `CreateCombo` / `UpdateCombo` / `DeleteCombo` | 组合 CRUD 与技能引用 |
+| `ListComboSkills` | 组合内技能，用于一键分发 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：

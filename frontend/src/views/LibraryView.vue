@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import DiscoverPanel from "./DiscoverPanel.vue";
+import CombosPanel from "./CombosPanel.vue";
 import DistributeModal from "./DistributeModal.vue";
 import {
   checkDrift,
@@ -51,6 +52,7 @@ const actionBusy = ref(false);
 const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; message: string; snapshotId?: string }>(null);
 const distributeOpen = ref(false);
 const distributeItems = ref<{ slug: string; name: string }[]>([]);
+const comboCount = ref(0);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -435,7 +437,7 @@ onUnmounted(() => {
       <button v-for="item in tabs" :key="item.id" class="tab" :class="{ active: tab === item.id }" @click="tab = item.id">
         {{ item.label }}
         <i v-if="item.id === 'mine'">{{ skills.length }}</i>
-        <i v-else-if="item.id === 'groups'">0</i>
+
       </button>
     </div>
 
@@ -603,12 +605,7 @@ onUnmounted(() => {
 
     <DiscoverPanel v-else-if="tab === 'scan'" @imported="onImported" />
 
-    <div v-else class="empty">
-      <div class="empty-ico"><Icon name="layers" :size="18" /></div>
-      <h3>组合将在 M1–M2 接入</h3>
-      <p>把技能编成组合，支持搜索、排序、编辑与一键分发。</p>
-      <button class="btn ghost" @click="tab = 'mine'">返回 Skill 仓库</button>
-    </div>
+    <CombosPanel v-else @count="comboCount = $event" />
 
     <div v-if="activeSlug" class="drawer-scrim" aria-hidden="true" />
     <aside v-if="activeSlug" class="skill-drawer" role="dialog" aria-label="技能详情">
