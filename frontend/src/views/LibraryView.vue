@@ -4,6 +4,8 @@ import Icon from "../components/Icon.vue";
 import {
   errorMessage,
   formatBytes,
+  deleteSkill,
+  deleteSkillSnapshot,
   getSkillDetail,
   importSkillArchive,
   importSkillDirectory,
@@ -14,7 +16,9 @@ import {
   pickSkillArchive,
   pickSkillDirectory,
   readSkillDocument,
+  restoreSkillSnapshot,
   saveSkillDocument,
+  setSkillEnabled,
 } from "../lib/api";
 import type { SkillDetail, SkillItem, SnapshotItem } from "../../bindings/xinskillvault/internal/app/models";
 import { useVaultStore } from "../stores/vault";
@@ -39,6 +43,8 @@ const snapshots = ref<SnapshotItem[]>([]);
 const editing = ref(false);
 const draft = ref("");
 const savingEdit = ref(false);
+const actionBusy = ref(false);
+const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; message: string; snapshotId?: string }>(null);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
 let toastTimer: number | undefined;
@@ -202,6 +208,83 @@ async function saveEdit() {
     showToast(errorMessage(error));
   } finally {
     savingEdit.value = false;
+  }
+}
+
+async function toggleEnabled() {
+  if (!detail.value || actionBusy.value) return;
+  actionBusy.value = true;
+  try {
+    const updated = await setSkillEnabled(detail.value.slug, !detail.value.enabled);
+    detail.value = { ...detail.value, ...updated };
+    await loadSkills();
+    showToast(updated.enabled ? "技能已启用" : "技能已禁用");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    actionBusy.value = false;
+  }
+}
+
+function askDeleteSkill() {
+  if (!detail.value) return;
+  confirmAction.value = {
+    type: "skill",
+    title: "删除技能",
+    message: `「${detail.value.name}」将移动到回收站，仓库索引会移除；可在回收站保留 30 天。`,
+  };
+}
+
+function askDeleteSnapshot(snapshot: SnapshotItem) {
+  confirmAction.value = {
+    type: "snapshot",
+    title: "删除快照",
+    message: `删除 ${formatDate(snapshot.createdAt)} 的快照？该操作不可撤销。`,
+    snapshotId: snapshot.id,
+  };
+}
+
+async function runConfirmAction() {
+  const action = confirmAction.value;
+  if (!action || !activeSlug.value) return;
+  actionBusy.value = true;
+  try {
+    if (action.type === "skill") {
+      await deleteSkill(activeSlug.value);
+      confirmAction.value = null;
+      closeDetail();
+      await Promise.all([vault.refresh(), loadSkills()]);
+      showToast("技能已移入回收站");
+    } else if (action.snapshotId) {
+      await deleteSkillSnapshot(activeSlug.value, action.snapshotId);
+      confirmAction.value = null;
+      snapshots.value = await listSkillSnapshots(activeSlug.value);
+      showToast("快照已删除");
+    }
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    actionBusy.value = false;
+  }
+}
+
+async function restoreSnapshot(snapshot: SnapshotItem) {
+  if (!activeSlug.value || actionBusy.value) return;
+  actionBusy.value = true;
+  try {
+    await restoreSkillSnapshot(activeSlug.value, snapshot.id);
+    const [nextDetail, nextSnapshots] = await Promise.all([
+      getSkillDetail(activeSlug.value),
+      listSkillSnapshots(activeSlug.value),
+    ]);
+    detail.value = nextDetail;
+    snapshots.value = nextSnapshots;
+    await loadSkills();
+    showToast("已恢复快照，并保存了恢复前的版本");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    actionBusy.value = false;
   }
 }
 
@@ -512,6 +595,8 @@ onUnmounted(() => {
               <span>{{ snapshot.note || "编辑前" }}</span>
               <span class="mono">{{ snapshot.contentHash.slice(0, 10) }}</span>
               <span class="muted">{{ formatDate(snapshot.createdAt) }}</span>
+              <button class="snap-action" :disabled="actionBusy" @click="restoreSnapshot(snapshot)">恢复</button>
+              <button class="snap-action danger" :disabled="actionBusy" title="删除快照" @click="askDeleteSnapshot(snapshot)">×</button>
             </div>
           </div>
         </template>
@@ -526,14 +611,28 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
-          <button class="btn" :disabled="!detail" @click="startEdit"><Icon name="edit" :size="12" /> 编辑</button>
+          <button class="btn" :disabled="!detail || actionBusy" @click="startEdit"><Icon name="edit" :size="12" /> 编辑</button>
           <button class="btn" :disabled="!detail" @click="openSkillDir"><Icon name="folder" :size="13" /> 打开目录</button>
+          <button class="btn" :disabled="!detail || actionBusy" @click="toggleEnabled">{{ detail?.enabled ? "禁用" : "启用" }}</button>
+          <button class="btn danger" :disabled="!detail || actionBusy" @click="askDeleteSkill">删除</button>
           <div class="grow" />
           <button class="btn" @click="closeDetail">关闭</button>
         </template>
       </footer>
     </aside>
 
+    <div v-if="confirmAction" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card">
+        <div class="confirm-head">
+          <div><h3>{{ confirmAction.title }}</h3><p>{{ confirmAction.message }}</p></div>
+          <button class="icon-btn" title="取消" @click="confirmAction = null"><Icon name="x" :size="15" /></button>
+        </div>
+        <div class="confirm-foot">
+          <button class="btn" :disabled="actionBusy" @click="confirmAction = null">取消</button>
+          <button class="btn danger" :disabled="actionBusy" @click="runConfirmAction">{{ actionBusy ? "处理中…" : "确认" }}</button>
+        </div>
+      </div>
+    </div>
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
@@ -615,9 +714,19 @@ onUnmounted(() => {
 .skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }
 .skill-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .snapshot-count { color: var(--text-4); font-weight: 400; }
-.snapshot-row { display: grid; grid-template-columns: 14px minmax(0,1fr) auto auto; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px dashed var(--border-soft); font-size: 9.5px; color: var(--text-2); }
+.snapshot-row { display: grid; grid-template-columns: 14px minmax(0,1fr) auto auto auto auto; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px dashed var(--border-soft); font-size: 9.5px; color: var(--text-2); }
 .snapshot-row:last-child { border-bottom: 0; }
 .snapshot-row .mono { color: var(--text-4); font-size: 8.5px; }
 .snapshot-row .muted { color: var(--text-4); }
+.snap-action { color: var(--accent); font-size: 9px; padding: 1px 4px; border-radius: 4px; }
+.snap-action:hover { background: var(--accent-soft); }
+.snap-action.danger { color: var(--danger); font-size: 12px; }
+.confirm-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(20,22,27,.32); backdrop-filter: blur(3px); }
+.confirm-card { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-lg); }
+.confirm-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px; }
+.confirm-head h3 { margin: 0; font-size: 14px; }
+.confirm-head p { margin: 5px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.6; }
+.confirm-head .icon-btn { margin-left: auto; flex: none; }
+.confirm-foot { display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); }
 @media (max-width: 900px) { .lib-search { width: 230px; } .st-row { grid-template-columns: 18px 16px minmax(0,1fr) 46px 56px 44px 34px 84px; } }
 </style>

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type SkillRecord struct {
@@ -221,6 +222,46 @@ func (s *Store) UpdateSkillWithSnapshot(record SkillRecord, snapshot SnapshotRec
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit skill update: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) SetSkillEnabled(id string, enabled bool) error {
+	_, err := s.db.Exec(`UPDATE skills SET enabled = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		boolInt(enabled), time.Now().Unix(), id)
+	if err != nil {
+		return fmt.Errorf("set skill enabled: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) SoftDeleteSkill(id string, at int64) error {
+	_, err := s.db.Exec(`UPDATE skills SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`, at, at, id)
+	if err != nil {
+		return fmt.Errorf("soft delete skill: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) FindSnapshot(skillID, id string) (*SnapshotRecord, error) {
+	row := s.db.QueryRow(`SELECT id, skill_id, content_hash, file_path, note, created_at
+		FROM snapshots WHERE id = ? AND skill_id = ?`, id, skillID)
+	var record SnapshotRecord
+	var note sql.NullString
+	if err := row.Scan(&record.ID, &record.SkillID, &record.ContentHash, &record.FilePath, &note, &record.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find snapshot: %w", err)
+	}
+	record.Note = note.String
+	return &record, nil
+}
+
+func (s *Store) DeleteSnapshot(id string) error {
+	_, err := s.db.Exec(`DELETE FROM snapshots WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete snapshot: %w", err)
 	}
 	return nil
 }

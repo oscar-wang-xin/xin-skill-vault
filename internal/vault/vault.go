@@ -548,3 +548,94 @@ func writeAtomic(path string, data []byte, mode fs.FileMode) error {
 	}
 	return nil
 }
+
+func (v *Vault) SetEnabled(slug string, enabled bool) (store.SkillRecord, error) {
+	var zero store.SkillRecord
+	record, err := v.Store.FindSkillBySlug(slug)
+	if err != nil {
+		return zero, err
+	}
+	if record == nil {
+		return zero, fmt.Errorf("技能不存在：%s", slug)
+	}
+	if err := v.Store.SetSkillEnabled(record.ID, enabled); err != nil {
+		return zero, err
+	}
+	record.Enabled = enabled
+	record.UpdatedAt = time.Now().Unix()
+	return *record, nil
+}
+
+// Trash moves a skill directory into .skillrepo/trash and marks its index row deleted.
+func (v *Vault) Trash(slug string) (string, error) {
+	record, err := v.Store.FindSkillBySlug(slug)
+	if err != nil {
+		return "", err
+	}
+	if record == nil {
+		return "", fmt.Errorf("技能不存在：%s", slug)
+	}
+	dir, err := v.SkillDir(slug)
+	if err != nil {
+		return "", err
+	}
+	trashRoot := filepath.Join(v.Root, ".skillrepo", "trash")
+	if err := os.MkdirAll(trashRoot, 0o755); err != nil {
+		return "", fmt.Errorf("create trash dir: %w", err)
+	}
+	target := filepath.Join(trashRoot, fmt.Sprintf("%s-%d-%s", slug, time.Now().Unix(), newID()[3:9]))
+	if err := os.Rename(dir, target); err != nil {
+		return "", fmt.Errorf("move skill to trash: %w", err)
+	}
+	now := time.Now().Unix()
+	if err := v.Store.SoftDeleteSkill(record.ID, now); err != nil {
+		_ = os.Rename(target, dir)
+		return "", err
+	}
+	return target, nil
+}
+
+func (v *Vault) RestoreSnapshot(slug, snapshotID string) (store.SkillRecord, error) {
+	var zero store.SkillRecord
+	record, err := v.Store.FindSkillBySlug(slug)
+	if err != nil {
+		return zero, err
+	}
+	if record == nil {
+		return zero, fmt.Errorf("技能不存在：%s", slug)
+	}
+	snapshot, err := v.Store.FindSnapshot(record.ID, snapshotID)
+	if err != nil {
+		return zero, err
+	}
+	if snapshot == nil {
+		return zero, fmt.Errorf("快照不存在")
+	}
+	data, err := os.ReadFile(snapshot.FilePath)
+	if err != nil {
+		return zero, fmt.Errorf("read snapshot: %w", err)
+	}
+	return v.SaveDocument(slug, string(data), "恢复快照")
+}
+
+func (v *Vault) DeleteSnapshot(slug, snapshotID string) error {
+	record, err := v.Store.FindSkillBySlug(slug)
+	if err != nil {
+		return err
+	}
+	if record == nil {
+		return fmt.Errorf("技能不存在：%s", slug)
+	}
+	snapshot, err := v.Store.FindSnapshot(record.ID, snapshotID)
+	if err != nil {
+		return err
+	}
+	if snapshot == nil {
+		return fmt.Errorf("快照不存在")
+	}
+	if err := v.Store.DeleteSnapshot(snapshot.ID); err != nil {
+		return err
+	}
+	_ = os.Remove(snapshot.FilePath)
+	return nil
+}

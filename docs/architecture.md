@@ -52,6 +52,8 @@ Wails v3 application
 | `PickSkillArchive` / `ImportSkillArchive` | `.zip` / `.skill` 选择与导入 |
 | `ReadSkillDocument` / `SaveSkillDocument` | 读取/保存 SKILL.md，保存前写快照 |
 | `ListSkillSnapshots` | 技能历史快照列表 |
+| `SetSkillEnabled` / `DeleteSkill` | 启用/禁用、移动到回收站、软删除索引 |
+| `RestoreSkillSnapshot` / `DeleteSkillSnapshot` | 恢复/删除历史快照（恢复前会再写快照） |
 | `OpenSkillFolder` | 打开单个技能目录 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
@@ -87,7 +89,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - `internal/vault`：目录/ZIP 导入、SHA256 指纹、原子复制、文件清单、SKILL.md 快照保存
 - `internal/store/skills.go`：技能创建/按 slug 查询/列表/更新/快照
 - Wails 服务：`ListSkills` / `GetSkillDetail` / `PickSkillDirectory` / `ImportSkillDirectory` / `PickSkillArchive` / `ImportSkillArchive` / `ReadSkillDocument` / `SaveSkillDocument` / `ListSkillSnapshots` / `OpenSkillFolder`
-- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表
+- 前端技能库：真实数据、搜索/筛选/排序、列表/卡片、详情抽屉、目录/ZIP 导入、SKILL.md 编辑与快照列表、启停/删除/快照恢复
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -95,7 +97,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - Agent 目录扫描与 Finding（M2）
 - URL 导入
 - 分发、项目、提示词实际数据
-- 快照回滚/删除、技能删除/禁用回收站
+- 回收站恢复界面、快照恢复后的可视化 diff
 
 ## 8. 下一步（M1 剩余 + M2）
 

@@ -199,6 +199,8 @@
 .btn:hover { border-color: var(--border-strong); transform: translateY(-1px); }
 .btn:active { transform: translateY(0); box-shadow: var(--nm-inset); }
 .btn.primary { color: var(--accent-fg); border-color: transparent; background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 84%, #fff), var(--accent)); }
+.btn.danger { color: var(--danger); border-color: color-mix(in oklab, var(--danger) 26%, var(--border)); }
+.btn.danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .btn.ghost { border-color: transparent; background: transparent; box-shadow: none; color: var(--text-3); }
 .btn.sm { height: 26px; padding: 0 8px; font-size: 10.5px; }
 .icon-btn {

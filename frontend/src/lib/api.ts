@@ -159,6 +159,27 @@ export async function listSkillSnapshots(slug: string): Promise<SnapshotItem[]> 
   return (await AppService.ListSkillSnapshots(slug)) ?? [];
 }
 
+
+export async function setSkillEnabled(slug: string, enabled: boolean): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("修改技能状态需要桌面应用");
+  return AppService.SetSkillEnabled(slug, enabled);
+}
+
+export async function deleteSkill(slug: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除技能需要桌面应用");
+  await AppService.DeleteSkill(slug);
+}
+
+export async function restoreSkillSnapshot(slug: string, snapshotID: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("恢复快照需要桌面应用");
+  return AppService.RestoreSkillSnapshot(slug, snapshotID);
+}
+
+export async function deleteSkillSnapshot(slug: string, snapshotID: string): Promise<void> {
+  if (!(await hasBackend())) throw new Error("删除快照需要桌面应用");
+  await AppService.DeleteSkillSnapshot(slug, snapshotID);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

@@ -150,3 +150,67 @@ func TestImportArchiveAndSaveDocument(t *testing.T) {
 		t.Fatal("invalid save must not change SKILL.md")
 	}
 }
+
+func TestSkillEnableTrashAndSnapshotActions(t *testing.T) {
+	root := t.TempDir()
+	source := t.TempDir()
+	doc := "---\nname: Lifecycle Skill\ndescription: lifecycle test\n---\n\n# Life\n"
+	if err := os.WriteFile(filepath.Join(source, "SKILL.md"), []byte(doc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(filepath.Join(root, ".skillrepo", "vault.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	v := New(root, st)
+	record, err := v.ImportDirectory(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disabled, err := v.SetEnabled(record.Slug, false)
+	if err != nil || disabled.Enabled {
+		t.Fatalf("disable failed: %+v, %v", disabled, err)
+	}
+	next := "---\nname: Lifecycle Skill\ndescription: lifecycle test v2\n---\n\n# Life 2\n"
+	if _, err := v.SaveDocument(record.Slug, next, "编辑前"); err != nil {
+		t.Fatal(err)
+	}
+	snaps, err := v.Snapshots(record.Slug)
+	if err != nil || len(snaps) != 1 {
+		t.Fatalf("snapshots: %+v, %v", snaps, err)
+	}
+	restored, err := v.RestoreSnapshot(record.Slug, snaps[0].ID)
+	if err != nil || restored.Description != "lifecycle test" {
+		t.Fatalf("restore failed: %+v, %v", restored, err)
+	}
+	content, _ := v.ReadDocument(record.Slug)
+	if content != doc {
+		t.Fatalf("restored content = %q", content)
+	}
+	afterRestore, _ := v.Snapshots(record.Slug)
+	if len(afterRestore) != 2 {
+		t.Fatalf("restore should create a new snapshot, got %d", len(afterRestore))
+	}
+	if err := v.DeleteSnapshot(record.Slug, afterRestore[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	afterDelete, _ := v.Snapshots(record.Slug)
+	if len(afterDelete) != 1 {
+		t.Fatalf("delete snapshot left %d", len(afterDelete))
+	}
+	trashPath, err := v.Trash(record.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(trashPath); err != nil {
+		t.Fatalf("trash missing: %v", err)
+	}
+	if _, err := v.Store.FindSkillBySlug(record.Slug); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := v.Store.ListSkills()
+	if len(list) != 0 {
+		t.Fatalf("trashed skill still listed: %+v", list)
+	}
+}

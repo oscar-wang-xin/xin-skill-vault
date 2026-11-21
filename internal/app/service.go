@@ -383,3 +383,34 @@ func skillItem(record store.SkillRecord) SkillItem {
 		Tags:        []string{},
 	}
 }
+
+func (s *Service) SetSkillEnabled(slug string, enabled bool) (SkillItem, error) {
+	record, err := vault.New(s.config.Current().VaultPath, s.store).SetEnabled(slug, enabled)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	return skillItem(record), nil
+}
+
+func (s *Service) DeleteSkill(slug string) error {
+	trashPath, err := vault.New(s.config.Current().VaultPath, s.store).Trash(slug)
+	if err != nil {
+		return err
+	}
+	if s.logger != nil {
+		s.logger.Info("skill moved to trash", "slug", slug, "path", trashPath)
+	}
+	return nil
+}
+
+func (s *Service) RestoreSkillSnapshot(slug, snapshotID string) (SkillItem, error) {
+	record, err := vault.New(s.config.Current().VaultPath, s.store).RestoreSnapshot(slug, snapshotID)
+	if err != nil {
+		return SkillItem{}, err
+	}
+	return skillItem(record), nil
+}
+
+func (s *Service) DeleteSkillSnapshot(slug, snapshotID string) error {
+	return vault.New(s.config.Current().VaultPath, s.store).DeleteSnapshot(slug, snapshotID)
+}

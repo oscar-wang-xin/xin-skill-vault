@@ -13,6 +13,14 @@ import * as config$0 from "../config/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+export function DeleteSkill(slug: string): $CancellablePromise<void> {
+    return $Call.ByID(3643838446, slug);
+}
+
+export function DeleteSkillSnapshot(slug: string, snapshotID: string): $CancellablePromise<void> {
+    return $Call.ByID(879356562, slug, snapshotID);
+}
+
 export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(3019495029);
 }
@@ -79,12 +87,20 @@ export function ReadSkillDocument(slug: string): $CancellablePromise<string> {
     return $Call.ByID(1991752622, slug);
 }
 
+export function RestoreSkillSnapshot(slug: string, snapshotID: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(2309828397, slug, snapshotID);
+}
+
 export function SaveConfig(next: config$0.Config): $CancellablePromise<$models.SaveConfigResult> {
     return $Call.ByID(1613918349, next);
 }
 
 export function SaveSkillDocument(slug: string, content: string, note: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1775529333, slug, content, note);
+}
+
+export function SetSkillEnabled(slug: string, enabled: boolean): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(58078040, slug, enabled);
 }
 
 /**
