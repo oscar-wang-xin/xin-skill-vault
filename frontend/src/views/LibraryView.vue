@@ -20,6 +20,7 @@ import {
   listSkillSnapshots,
   listSkills,
   listTags,
+  mergeTags,
   openSkillFolder,
   openVaultFolder,
   pickBundleArchive,
@@ -74,6 +75,9 @@ const tagManager = ref(false);
 const tagEditingID = ref<string | null>(null);
 const tagEditName = ref("");
 const tagBusy = ref(false);
+const tagMergeSource = ref<TagItem | null>(null);
+const tagMergeTarget = ref("");
+const tagMerging = ref(false);
 const exporting = ref(false);
 const bundleModal = ref(false);
 const bundleName = ref("skills-bundle");
@@ -470,6 +474,26 @@ async function saveNote() {
     showToast(errorMessage(error));
   } finally {
     noteSaving.value = false;
+  }
+}
+
+function openTagMerge(tag: TagItem) {
+  tagMergeSource.value = tag;
+  tagMergeTarget.value = tags.value.find((item) => item.id !== tag.id)?.id ?? "";
+}
+
+async function runTagMerge() {
+  if (!tagMergeSource.value || !tagMergeTarget.value || tagMerging.value) return;
+  tagMerging.value = true;
+  try {
+    await mergeTags(tagMergeSource.value.id, tagMergeTarget.value);
+    tagMergeSource.value = null;
+    await Promise.all([loadTags(), loadSkills()]);
+    showToast("标签已合并");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    tagMerging.value = false;
   }
 }
 
@@ -906,12 +930,32 @@ onUnmounted(() => {
               <span class="muted">{{ tag.count }} 个技能</span>
               <div class="grow" />
               <button class="mini-link" @click="startTagRename(tag)">重命名</button>
+              <button class="mini-link" @click="openTagMerge(tag)">合并</button>
               <button class="mini-link danger" :disabled="tagBusy" @click="removeTag(tag)">删除</button>
             </template>
           </div>
           <div v-if="!tags.length" class="empty-mini">还没有标签。</div>
         </div>
         <div class="confirm-foot"><button class="btn" @click="tagManager = false">关闭</button></div>
+      </div>
+    </div>
+
+    <div v-if="tagMergeSource" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card">
+        <div class="confirm-head">
+          <div><h3>合并标签</h3><p>把「{{ tagMergeSource.name }}」的技能引用合并到目标标签，然后删除源标签。</p></div>
+          <button class="icon-btn" :disabled="tagMerging" @click="tagMergeSource = null"><Icon name="x" :size="15" /></button>
+        </div>
+        <div style="padding: 0 14px 12px">
+          <select v-model="tagMergeTarget" class="input" :disabled="tagMerging">
+            <option value="">选择目标标签</option>
+            <option v-for="tag in tags.filter((item) => item.id !== tagMergeSource?.id)" :key="tag.id" :value="tag.id">{{ tag.name }} ({{ tag.count }})</option>
+          </select>
+        </div>
+        <div class="confirm-foot">
+          <button class="btn" :disabled="tagMerging" @click="tagMergeSource = null">取消</button>
+          <button class="btn primary" :disabled="tagMerging || !tagMergeTarget" @click="runTagMerge">{{ tagMerging ? "合并中…" : "合并" }}</button>
+        </div>
       </div>
     </div>
 

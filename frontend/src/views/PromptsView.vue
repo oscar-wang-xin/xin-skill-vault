@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import {
   createPrompt,
@@ -50,6 +50,11 @@ const categoryName = ref("");
 const categoryParent = ref("");
 const categoryDir = ref("");
 const categoryBusy = ref(false);
+const editorPercent = ref(Number(localStorage.getItem("xsv-prompt-editor-split")) || 66);
+const pdBodyEl = ref<HTMLElement | null>(null);
+let splitStartX = 0;
+let splitStartPercent = 0;
+let splitting = false;
 const draggingCategory = ref("");
 const dragOverCategory = ref("");
 
@@ -372,6 +377,37 @@ async function openFolder() {
   }
 }
 
+function startSplit(event: PointerEvent) {
+  if (!pdBodyEl.value) return;
+  splitting = true;
+  splitStartX = event.clientX;
+  splitStartPercent = editorPercent.value;
+  window.addEventListener("pointermove", moveSplit);
+  window.addEventListener("pointerup", endSplit);
+  event.preventDefault();
+}
+
+function moveSplit(event: PointerEvent) {
+  if (!splitting || !pdBodyEl.value) return;
+  const width = pdBodyEl.value.getBoundingClientRect().width;
+  if (!width) return;
+  const delta = ((event.clientX - splitStartX) / width) * 100;
+  editorPercent.value = Math.max(45, Math.min(80, Math.round(splitStartPercent + delta)));
+}
+
+function endSplit() {
+  if (!splitting) return;
+  splitting = false;
+  localStorage.setItem("xsv-prompt-editor-split", String(editorPercent.value));
+  window.removeEventListener("pointermove", moveSplit);
+  window.removeEventListener("pointerup", endSplit);
+}
+
+onUnmounted(() => {
+  window.removeEventListener("pointermove", moveSplit);
+  window.removeEventListener("pointerup", endSplit);
+});
+
 onMounted(async () => {
   try {
     await refresh();
@@ -485,7 +521,7 @@ onMounted(async () => {
           </div>
         </header>
 
-        <div class="pd-body">
+        <div ref="pdBodyEl" class="pd-body" :style="{ gridTemplateColumns: `minmax(0, ${editorPercent}%) 7px minmax(220px, 1fr)` }">
           <div class="pd-editor">
             <div class="pd-form">
               <label class="field"><span>标题</span><input v-model="draftTitle" class="input" placeholder="提示词标题" @input="markDirty" /></label>
@@ -514,6 +550,7 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+          <div class="pd-resizer" title="拖动调整编辑区宽度" @pointerdown="startSplit" />
           <aside class="pd-versions">
             <div class="pv-head"><b>版本历史</b><span>{{ versions.length }}</span></div>
             <div v-if="!versions.length" class="pv-empty">保存后生成第一个版本。</div>
@@ -622,7 +659,9 @@ onMounted(async () => {
 .pd-head h2 { margin: 0; font-size: 15px; }
 .pd-head span { color: var(--text-4); font-size: 9px; }
 .pd-actions { margin-left: auto; display: flex; align-items: center; gap: 5px; }
-.pd-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); min-height: 0; flex: 1; }
+.pd-body { display: grid; grid-template-columns: minmax(0, 2fr) 7px minmax(220px, 1fr); min-height: 0; flex: 1; }
+.pd-resizer { cursor: col-resize; background: transparent; }
+.pd-resizer:hover { background: var(--accent-soft); }
 .pd-editor { padding: 12px 16px 14px; overflow: auto; min-width: 0; }
 .pd-form { display: flex; flex-direction: column; gap: 8px; height: 100%; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: var(--text-3); }
@@ -657,5 +696,5 @@ onMounted(async () => {
 .prompt-confirm-foot { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .category-card { gap: 10px; }
 .empty-mini { padding: 24px; text-align: center; color: var(--text-4); font-size: 10px; }
-@media (max-width: 900px) { .prompt-layout { grid-template-columns: 180px minmax(0, 1fr); } .prompt-drawer { width: 94vw; min-width: 0; } .pd-body { grid-template-columns: 1fr; } .pd-versions { border-left: 0; border-top: 1px solid var(--border-soft); max-height: 250px; } }
+@media (max-width: 900px) { .prompt-layout { grid-template-columns: 180px minmax(0, 1fr); } .prompt-drawer { width: 94vw; min-width: 0; } .pd-body { grid-template-columns: 1fr !important; } .pd-resizer { display: none; } .pd-versions { border-left: 0; border-top: 1px solid var(--border-soft); max-height: 250px; } }
 </style>

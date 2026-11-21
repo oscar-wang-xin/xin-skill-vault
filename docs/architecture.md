@@ -76,7 +76,7 @@ Wails v3 application
 | `GetPromptVersion` / `DeletePromptVersion` | 读取/删除版本，当前版本删除后自动切换 |
 | `ReorderPromptCategories` | 同一父级下的分类排序（服务端校验不可跨级） |
 | `ListTags` / `SetSkillTags` | 标签词典与技能标签 |
-| `RenameTag` / `DeleteTag` / `MergeTags` | 标签词典维护与合并 |
+| `RenameTag` / `DeleteTag` / `MergeTags` | 标签词典维护与合并（UI 已接重命名/删除/合并） |
 | `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
 | `ExportSkillPackage` / `ExportSkillsBundle` | 导出单个 `.skill` 或多技能 Bundle zip |
 | `PickBundleArchive` / `ImportBundleArchive` | 选择并导入 Bundle：解析 bundle.json、逐个技能入库 |
