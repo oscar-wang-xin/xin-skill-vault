@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
-import { errorMessage, installMarketSkill, listMarketSources, searchMarket } from "../lib/api";
-import type { Skill as MarketSkill, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
+import { auditMarketSkill, errorMessage, installMarketSkill, listMarketCategories, listMarketSources, searchMarket } from "../lib/api";
+import type { Audit as MarketAudit, Category as MarketCategory, Skill as MarketSkill, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
 import { useVaultStore } from "../stores/vault";
 
 const vault = useVaultStore();
 const sources = ref<MarketSource[]>([]);
+const categories = ref<MarketCategory[]>([]);
 const activeSource = ref("all");
+const activeCategory = ref("");
 const query = ref("");
 const items = ref<MarketSkill[]>([]);
 const total = ref(0);
 const page = ref(1);
 const loading = ref(false);
 const installing = ref("");
+const auditing = ref("");
+const auditTarget = ref<MarketSkill | null>(null);
+const auditResult = ref<MarketAudit | null>(null);
 const sortMode = ref<"installs" | "name">("installs");
 const toast = ref("");
 let toastTimer: number | undefined;
@@ -46,7 +51,7 @@ async function search(reset = true) {
   if (reset) page.value = 1;
   loading.value = true;
   try {
-    const result = await searchMarket(activeSource.value, query.value, page.value);
+    const result = await searchMarket(activeSource.value, query.value, activeCategory.value, page.value);
     items.value = reset ? (result.items ?? []) : [...items.value, ...(result.items ?? [])];
     total.value = result.total ?? 0;
   } catch (error) {
@@ -63,11 +68,11 @@ async function loadMore() {
   await search(false);
 }
 
-async function install(skill: MarketSkill) {
+async function doInstall(skill: MarketSkill, force: boolean) {
   if (skill.installed || installing.value) return;
   installing.value = skill.id;
   try {
-    await installMarketSkill(skill.source, skill.slug, skill.namespace);
+    await installMarketSkill(skill.source, skill.slug, skill.namespace, force);
     skill.installed = true;
     await vault.refresh();
     showToast(`已入库：${skill.name}`);
@@ -78,10 +83,57 @@ async function install(skill: MarketSkill) {
   }
 }
 
+async function install(skill: MarketSkill) {
+  if (skill.installed || installing.value || auditing.value) return;
+  auditing.value = skill.id;
+  try {
+    const audit = await auditMarketSkill(skill.source, skill.slug, skill.namespace);
+    if (audit.level === "high") {
+      auditTarget.value = skill;
+      auditResult.value = audit;
+      return;
+    }
+    if (audit.level === "medium") showToast("检查到脚本文件，安装后请自行确认内容");
+    await doInstall(skill, false);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    auditing.value = "";
+  }
+}
+
+function cancelAudit() {
+  if (installing.value) return;
+  auditTarget.value = null;
+  auditResult.value = null;
+}
+
+async function confirmInstall() {
+  if (!auditTarget.value) return;
+  const skill = auditTarget.value;
+  await doInstall(skill, true);
+  auditTarget.value = null;
+  auditResult.value = null;
+}
+
 async function selectSource(id: string) {
   if (activeSource.value === id) return;
   activeSource.value = id;
+  if (id === "skills-sh") activeCategory.value = "";
   await search(true);
+}
+
+async function selectCategory(key: string) {
+  activeCategory.value = key;
+  await search(true);
+}
+
+async function loadCategories() {
+  try {
+    categories.value = await listMarketCategories();
+  } catch {
+    categories.value = [];
+  }
 }
 
 async function loadSources() {
@@ -93,7 +145,7 @@ async function loadSources() {
 }
 
 onMounted(async () => {
-  await loadSources();
+  await Promise.all([loadSources(), loadCategories()]);
   await search(true);
 });
 </script>
@@ -127,6 +179,13 @@ onMounted(async () => {
         <option value="installs">按热度</option>
         <option value="name">按名称</option>
       </select>
+    </div>
+
+    <div v-if="activeSource !== 'skills-sh' && categories.length" class="market-categories">
+      <button class="chip" :class="{ active: !activeCategory }" @click="selectCategory('')">全部分类</button>
+      <button v-for="category in categories" :key="category.key" class="chip" :class="{ active: activeCategory === category.key }" @click="selectCategory(category.key)">
+        {{ category.name }}
+      </button>
     </div>
 
     <div v-if="active && active.note && unavailable" class="market-note">
@@ -169,7 +228,7 @@ onMounted(async () => {
         <div class="mk-foot">
           <span class="mono">{{ skill.slug }}</span>
           <button class="btn sm primary" :disabled="skill.installed || !!installing" @click="install(skill)">
-            {{ skill.installed ? "已入库" : installing === skill.id ? "安装中…" : "安装" }}
+            {{ skill.installed ? "已入库" : installing === skill.id ? "安装中…" : auditing === skill.id ? "检查中…" : "安装" }}
           </button>
         </div>
       </article>
@@ -179,13 +238,37 @@ onMounted(async () => {
       <button class="btn" :disabled="loading" @click="loadMore">{{ loading ? "加载中…" : "加载更多" }}</button>
     </div>
 
+    <div v-if="auditTarget && auditResult" class="audit-overlay" @click.self.stop>
+      <div class="audit-card">
+        <header class="audit-head">
+          <div>
+            <h3>安装前检查 · 高风险</h3>
+            <p>{{ auditTarget.name }} 包含需要确认的脚本或命令。</p>
+          </div>
+          <button class="icon-btn" :disabled="!!installing" @click="cancelAudit"><Icon name="x" :size="15" /></button>
+        </header>
+        <div class="audit-body">
+          <div class="badge warn">高风险</div>
+          <ul>
+            <li v-for="finding in (auditResult.findings ?? [])" :key="finding">{{ finding }}</li>
+          </ul>
+          <p v-if="!(auditResult.findings ?? []).length" class="muted">检查到脚本文件，未命中已知危险命令。</p>
+        </div>
+        <footer class="audit-foot">
+          <button class="btn" :disabled="!!installing" @click="cancelAudit">取消</button>
+          <button class="btn danger" :disabled="!!installing" @click="confirmInstall">{{ installing ? "安装中…" : "仍然安装" }}</button>
+        </footer>
+      </div>
+    </div>
+
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
 
 <style scoped>
 .market-search { width: 260px; }
-.market-tabs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.market-tabs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.market-categories { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
 .source-status { font-size: 8px; color: var(--text-4); margin-left: 3px; }
 .source-status.available { color: var(--success, #15803d); }
 .source-status.limited, .source-status.experimental { color: var(--warning); }
@@ -206,5 +289,14 @@ onMounted(async () => {
 .mk-foot { display: flex; align-items: center; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--border-soft); }
 .mk-foot .mono { color: var(--text-4); font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .market-more { display: flex; justify-content: center; padding: 14px; }
+.audit-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(20,22,27,.32); backdrop-filter: blur(3px); }
+.audit-card { width: min(500px, calc(100vw - 32px)); max-height: min(600px, calc(100vh - 40px)); display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-lg); overflow: hidden; }
+.audit-head { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--border-soft); }
+.audit-head h3 { margin: 0; font-size: 14px; }
+.audit-head p { margin: 4px 0 0; color: var(--text-4); font-size: 10px; }
+.audit-head .icon-btn { margin-left: auto; }
+.audit-body { padding: 12px 16px; overflow: auto; }
+.audit-body ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-3); font-size: 10px; line-height: 1.7; }
+.audit-foot { display: flex; justify-content: flex-end; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--border-soft); }
 @media (max-width: 720px) { .market-search { width: 100%; } }
 </style>

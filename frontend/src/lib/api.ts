@@ -2,7 +2,7 @@ import * as AppService from "../../bindings/xinskillvault/internal/app/service";
 import type { AppInfo, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
-import type { Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
+import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -304,14 +304,24 @@ export async function listMarketSources(): Promise<MarketSource[]> {
   return (await AppService.ListMarketSources()) ?? [];
 }
 
-export async function searchMarket(source: string, query: string, page = 1): Promise<MarketResult> {
+export async function searchMarket(source: string, query: string, category: string, page = 1): Promise<MarketResult> {
   if (!(await hasBackend())) throw new Error("市场搜索需要桌面应用");
-  return AppService.SearchMarket(source, query, page);
+  return AppService.SearchMarket(source, query, category, page);
 }
 
-export async function installMarketSkill(source: string, slug: string, namespace: string): Promise<SkillItem> {
+export async function listMarketCategories(): Promise<MarketCategory[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListMarketCategories()) ?? [];
+}
+
+export async function auditMarketSkill(source: string, slug: string, namespace: string): Promise<MarketAudit> {
+  if (!(await hasBackend())) throw new Error("市场审计需要桌面应用");
+  return AppService.AuditMarketSkill(source, slug, namespace);
+}
+
+export async function installMarketSkill(source: string, slug: string, namespace: string, force = false): Promise<SkillItem> {
   if (!(await hasBackend())) throw new Error("安装市场技能需要桌面应用");
-  return AppService.InstallMarketSkill(source, slug, namespace);
+  return AppService.InstallMarketSkill(source, slug, namespace, force);
 }
 
 export function formatBytes(bytes: number): string {

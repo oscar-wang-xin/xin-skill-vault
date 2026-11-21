@@ -26,6 +26,10 @@ export function AddProjectSkills(id: string, slugs: string[] | null, mode: strin
     return $Call.ByID(4259146640, id, slugs, mode);
 }
 
+export function AuditMarketSkill(source: string, slug: string, $namespace: string): $CancellablePromise<market$0.Audit> {
+    return $Call.ByID(1730034290, source, slug, $namespace);
+}
+
 export function CheckDrift(): $CancellablePromise<distribute$0.Report[] | null> {
     return $Call.ByID(148441865);
 }
@@ -78,12 +82,16 @@ export function ImportSkillDirectory(source: string): $CancellablePromise<$model
     return $Call.ByID(1879938159, source);
 }
 
-export function InstallMarketSkill(source: string, slug: string, $namespace: string): $CancellablePromise<$models.SkillItem> {
-    return $Call.ByID(3926582246, source, slug, $namespace);
+export function InstallMarketSkill(source: string, slug: string, $namespace: string, force: boolean): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(3926582246, source, slug, $namespace, force);
 }
 
 export function ListDistributionTargets(slug: string): $CancellablePromise<$models.DistributionTarget[] | null> {
     return $Call.ByID(3007283258, slug);
+}
+
+export function ListMarketCategories(): $CancellablePromise<market$0.Category[] | null> {
+    return $Call.ByID(2663885902);
 }
 
 export function ListMarketSources(): $CancellablePromise<market$0.Source[] | null> {
@@ -184,8 +192,8 @@ export function ScanAgents(): $CancellablePromise<scan$0.Result> {
     return $Call.ByID(1340619965);
 }
 
-export function SearchMarket(source: string, query: string, page: number): $CancellablePromise<market$0.Result> {
-    return $Call.ByID(85612898, source, query, page);
+export function SearchMarket(source: string, query: string, category: string, page: number): $CancellablePromise<market$0.Result> {
+    return $Call.ByID(85612898, source, query, category, page);
 }
 
 export function SetProjectAgents(id: string, agentIDs: string[] | null): $CancellablePromise<$models.ProjectItem> {

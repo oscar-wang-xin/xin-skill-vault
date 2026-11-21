@@ -32,7 +32,9 @@ type Skill struct {
 	Version     string   `json:"version"`
 	Installs    int      `json:"installs"`
 	Tags        []string `json:"tags"`
+	Category    string   `json:"category"`
 	URL         string   `json:"url"`
+	Repository  string   `json:"repository"`
 	IconURL     string   `json:"iconUrl"`
 	Installed   bool     `json:"installed"`
 }
@@ -45,20 +47,23 @@ type Result struct {
 
 type Provider interface {
 	ID() string
-	Search(ctx context.Context, query string, page int) ([]Skill, int, error)
+	Search(ctx context.Context, query, category string, page int) ([]Skill, int, error)
 	Download(ctx context.Context, skill Skill, destination string) error
 }
 
 func Sources() []Source {
 	return []Source{
 		{ID: "skillhub", Name: "SkillHub", Status: "available", Note: "中文社区公开 API"},
-		{ID: "skills-sh", Name: "skills.sh", Status: "limited", Note: "官方 API 需要 Vercel OIDC，暂未接入"},
+		{ID: "skills-sh", Name: "skills.sh", Status: "available", Note: "sitemap 目录 + GitHub 仓库安装"},
 		{ID: "skillsmp", Name: "SkillsMP", Status: "experimental", Note: "Cloudflare 防护，暂未启用"},
 	}
 }
 
 func DefaultProviders() map[string]Provider {
-	return map[string]Provider{"skillhub": NewSkillHub()}
+	return map[string]Provider{
+		"skillhub":  NewSkillHub(),
+		"skills-sh": NewSkillsSh(),
+	}
 }
 
 type SkillHub struct {
@@ -79,6 +84,7 @@ type skillHubResponse struct {
 			Slug        string `json:"slug"`
 			Name        string `json:"name"`
 			Description string `json:"description"`
+			Category    string `json:"category"`
 			Version     string `json:"version"`
 			Installs    int    `json:"installs"`
 			Downloads   int    `json:"downloads"`
@@ -93,7 +99,7 @@ type skillHubResponse struct {
 	} `json:"data"`
 }
 
-func (p *SkillHub) Search(ctx context.Context, query string, page int) ([]Skill, int, error) {
+func (p *SkillHub) Search(ctx context.Context, query, category string, page int) ([]Skill, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -102,6 +108,9 @@ func (p *SkillHub) Search(ctx context.Context, query string, page int) ([]Skill,
 	values.Set("pageSize", "24")
 	if strings.TrimSpace(query) != "" {
 		values.Set("keyword", strings.TrimSpace(query))
+	}
+	if strings.TrimSpace(category) != "" {
+		values.Set("category", strings.TrimSpace(category))
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.skillhub.cn/api/skills?"+values.Encode(), nil)
 	if err != nil {
@@ -132,7 +141,7 @@ func (p *SkillHub) Search(ctx context.Context, query string, page int) ([]Skill,
 			ID: "skillhub:" + namespace + ":" + item.Slug, Source: "skillhub", SourceName: "SkillHub",
 			Slug: item.Slug, Namespace: namespace, Name: item.Name, Description: item.Description,
 			Author: item.OwnerName, Version: item.Version, Installs: item.Installs,
-			Tags: []string{}, URL: installURL, IconURL: item.IconURL,
+			Category: item.Category, Tags: []string{}, URL: installURL, IconURL: item.IconURL,
 		})
 	}
 	return items, payload.Data.Total, nil
@@ -170,4 +179,9 @@ func (p *SkillHub) Download(ctx context.Context, skill Skill, destination string
 		return fmt.Errorf("写入技能包: %w", err)
 	}
 	return file.Close()
+}
+
+type Category struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
 }
