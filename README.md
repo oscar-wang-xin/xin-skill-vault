@@ -206,7 +206,6 @@ xin-skill-vault/
 - Bug / 功能建议：<https://github.com/oscar-wang-xin/xin-skill-vault/issues>
 - 提交前请先运行 `go test ./internal/...` 和 `npm run build`。
 - 不要提交本地仓库数据、构建产物、个人路径或密钥。
-- 内部原型、开发计划和评审资料不会进入公开仓库。
 
 ## License
 
