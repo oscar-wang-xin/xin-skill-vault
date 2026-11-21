@@ -3,7 +3,7 @@
 **One vault for every AI agent skill on your machine.**
 一个仓库，统一管理本机所有 AI Agent 的 skill：导入、编辑、分组、分发、追踪、回滚。
 
-> 当前阶段：**M2 已完成**：仓库、扫描、分发（junction/复制）、漂移修复、项目模块全部接通；下一步 M3 市场源接入。
+> 当前阶段：**M3 进行中**：M2 已完成；市场页已接 SkillHub 真实搜索与 zip 安装；skills.sh / SkillsMP 暂标记为受限/实验性。
 
 ---
 
@@ -136,6 +136,7 @@ wails3 build
 - **批量分发**：仓库勾选多个技能 → 选择多个 Agent → 一次安装；已安装技能自动跳过，可分目标移除。
 - **漂移检测**：检查已分发副本/链接的 hash；区分仓库已更新、安装件被修改、安装件缺失；Agent 页单条或全部修复；复制件修复前自动备份到 `.skillrepo/backups/<slug>/`。
 - **项目模块**：新建项目、配置项目内 Agent、批量添加/移除技能到项目级目录、按技能/Agent 展示链接/复制状态、左列 220–380px 拖宽、移除项目不删项目目录。
+- **市场**：SkillHub 搜索/分页/安装，安装后标记已入库；skills.sh 官方 API 需 Vercel OIDC，SkillsMP 有 Cloudflare 防护，暂列受限源。
 
 ### M1 已接入
 
@@ -147,7 +148,7 @@ wails3 build
 - **技能生命周期**：启用/禁用；删除移动到 `.skillrepo/trash` 并软删除索引（30 天保留约定）。
 - **示例技能**：`examples/demo-skill/`，可直接在应用里导入试用。
 - **M1 尚未完成**：URL 导入、回收站恢复界面。
-- **M3 待接入**：market providers、缓存、安装流程。
+- **M3 待接入**：skills.sh / SkillsMP provider、缓存、市场分类与安全审计。
 - **后续**：市场、组合、提示词、Bundle。
 
 ### M0 已落地

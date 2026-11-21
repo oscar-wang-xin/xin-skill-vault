@@ -2,6 +2,7 @@ import * as AppService from "../../bindings/xinskillvault/internal/app/service";
 import type { AppInfo, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
+import type { Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
 import type { Config } from "../../bindings/xinskillvault/internal/config/models";
 
 const CONFIG_KEY = "xsv-demo-config";
@@ -295,6 +296,22 @@ export async function repairAllDrift(): Promise<{ repaired: number; errors: stri
   if (!(await hasBackend())) throw new Error("批量修复需要桌面应用");
   const result = await AppService.RepairAllDrift();
   return { repaired: result.repaired, errors: result.errors ?? [] };
+}
+
+
+export async function listMarketSources(): Promise<MarketSource[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListMarketSources()) ?? [];
+}
+
+export async function searchMarket(source: string, query: string, page = 1): Promise<MarketResult> {
+  if (!(await hasBackend())) throw new Error("市场搜索需要桌面应用");
+  return AppService.SearchMarket(source, query, page);
+}
+
+export async function installMarketSkill(source: string, slug: string, namespace: string): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("安装市场技能需要桌面应用");
+  return AppService.InstallMarketSkill(source, slug, namespace);
 }
 
 export function formatBytes(bytes: number): string {

@@ -152,12 +152,13 @@ func (s *Store) UpdateSkill(record SkillRecord) error {
 	_, err := s.db.Exec(`
 		UPDATE skills SET
 			name = ?, description = ?, version = ?, author = ?, license = ?, icon = ?,
-			content_hash = ?, size_bytes = ?, file_count = ?, source_type = ?, source_ref = ?, updated_at = ?
+			content_hash = ?, size_bytes = ?, file_count = ?, source_type = ?, source_ref = ?,
+			source_rev = ?, source_url = ?, updated_at = ?
 		WHERE id = ? AND deleted_at IS NULL`,
 		record.Name, record.Description, nullString(record.Version), nullString(record.Author),
 		nullString(record.License), nullString(record.Icon), record.ContentHash,
 		record.SizeBytes, record.FileCount, record.SourceType, nullString(record.SourceRef),
-		record.UpdatedAt, record.ID,
+		nullString(record.SourceRev), nullString(record.SourceURL), record.UpdatedAt, record.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("update skill: %w", err)

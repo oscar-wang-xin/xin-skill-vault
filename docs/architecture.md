@@ -66,6 +66,8 @@ Wails v3 application
 | `SetProjectAgents` | 项目级 Agent 配置，维护 `targets(kind='project')` |
 | `ListProjectSkills` / `AddProjectSkills` / `RemoveProjectSkill` | 项目技能聚合、批量安装与移除 |
 | `PickProjectDirectory` / `OpenProjectFolder` | 项目目录选择与打开 |
+| `ListMarketSources` | 内置市场源与健康/限制说明 |
+| `SearchMarket` / `InstallMarketSkill` | SkillHub 搜索、分页、zip 下载 → 仓库导入 → 来源记为 market |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -109,6 +111,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 前端分发弹层：单技能 / 批量、多 Agent 选择、链接/复制模式、移除；详情抽屉与仓库批量入口
 - 前端漂移：图书馆「有更新」筛选、卡片漂移标记、Agent 页异常安装列表、单条/全部修复
 - 前端项目：项目列表 + 项目详情、左列拖宽、项目 Agent 配置、批量添加/移除技能、项目技能表
+- `internal/market`：Provider 接口、SkillHub 搜索/下载适配器；skills.sh / SkillsMP 暂标记受限
 - 示例：`examples/demo-skill/`
 
 尚未完成：
@@ -116,7 +119,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M3 市场源、缓存与安装流程
+- M3 skills.sh / SkillsMP、缓存、市场分类/安全审计
 
 ## 8. 下一步
 

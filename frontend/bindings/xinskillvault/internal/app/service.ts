@@ -13,6 +13,9 @@ import * as config$0 from "../config/models.js";
 import * as distribute$0 from "../distribute/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as market$0 from "../market/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as scan$0 from "../scan/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -75,8 +78,16 @@ export function ImportSkillDirectory(source: string): $CancellablePromise<$model
     return $Call.ByID(1879938159, source);
 }
 
+export function InstallMarketSkill(source: string, slug: string, $namespace: string): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(3926582246, source, slug, $namespace);
+}
+
 export function ListDistributionTargets(slug: string): $CancellablePromise<$models.DistributionTarget[] | null> {
     return $Call.ByID(3007283258, slug);
+}
+
+export function ListMarketSources(): $CancellablePromise<market$0.Source[] | null> {
+    return $Call.ByID(3558976624);
 }
 
 export function ListProjectSkills(id: string): $CancellablePromise<$models.ProjectSkill[] | null> {
@@ -171,6 +182,10 @@ export function SaveSkillDocument(slug: string, content: string, note: string): 
 
 export function ScanAgents(): $CancellablePromise<scan$0.Result> {
     return $Call.ByID(1340619965);
+}
+
+export function SearchMarket(source: string, query: string, page: number): $CancellablePromise<market$0.Result> {
+    return $Call.ByID(85612898, source, query, page);
 }
 
 export function SetProjectAgents(id: string, agentIDs: string[] | null): $CancellablePromise<$models.ProjectItem> {
