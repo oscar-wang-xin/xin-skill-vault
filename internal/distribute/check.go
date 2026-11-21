@@ -3,6 +3,9 @@ package distribute
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"xinskillvault/internal/store"
 	"xinskillvault/internal/vault"
@@ -114,5 +117,19 @@ func RepairTarget(st *store.Store, v *vault.Vault, slug, targetID string) (store
 	if assignment == nil {
 		return store.AssignmentRecord{}, fmt.Errorf("没有找到分发记录")
 	}
+	if assignment.Mode != "link" && assignment.Mode != "junction" {
+		if _, err := os.Lstat(assignment.InstalledPath); err == nil {
+			backup := filepath.Join(v.Root, ".skillrepo", "backups", slug,
+				fmt.Sprintf("%s-%d.zip", safeBackupName(target.ID), time.Now().UnixNano()))
+			if err := vault.ArchiveDir(assignment.InstalledPath, backup); err != nil {
+				return store.AssignmentRecord{}, fmt.Errorf("backup modified install before repair: %w", err)
+			}
+		}
+	}
 	return (&Distributor{Vault: v, Store: st}).Install(*target, slug, assignment.Mode)
+}
+
+func safeBackupName(value string) string {
+	replacer := strings.NewReplacer(":", "_", "/", "_", "\\", "_", " ", "_")
+	return replacer.Replace(value)
 }

@@ -57,6 +57,10 @@ func TestCheckDetectsStaleMissingAndRepair(t *testing.T) {
 	if _, err := Repair(st, v, record.Slug, target.AgentID); err != nil {
 		t.Fatal(err)
 	}
+	backups, _ := filepath.Glob(filepath.Join(root, ".skillrepo", "backups", record.Slug, "*.zip"))
+	if len(backups) != 1 {
+		t.Fatalf("repair backup missing: %v", backups)
+	}
 	reports, _ = Check(st, v)
 	if reports[0].Status != "ok" {
 		t.Fatalf("repair status = %+v", reports[0])

@@ -61,7 +61,7 @@ Wails v3 application
 | `ListDistributionTargets` | 确保 Agent target 入库，返回检测/已分发状态 |
 | `DistributeSkill` / `UninstallSkill` | 链接（失败降级复制）或复制分发；移除安装 |
 | `ListSkillAssignments` | 技能的分发记录 |
-| `CheckDrift` / `RepairDrift` / `RepairAllDrift` | 检测安装件缺失/修改/仓库更新，单条或批量修复 |
+| `CheckDrift` / `RepairDrift` / `RepairAllDrift` | 检测安装件缺失/修改/仓库更新，单条或批量修复；复制件先备份 |
 | `ListProjects` / `CreateProject` / `UpdateProject` / `DeleteProject` | 项目 CRUD，移除项目不删除项目目录 |
 | `SetProjectAgents` | 项目级 Agent 配置，维护 `targets(kind='project')` |
 | `ListProjectSkills` / `AddProjectSkills` / `RemoveProjectSkill` | 项目技能聚合、批量安装与移除 |
@@ -116,7 +116,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - URL 导入
 - 分发、项目、提示词实际数据
 - 回收站恢复界面、快照恢复后的可视化 diff
-- M2 修复前备份本地修改
+- M3 市场源、缓存与安装流程
 
 ## 8. 下一步
 

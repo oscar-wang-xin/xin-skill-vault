@@ -920,3 +920,11 @@ func extractDirectoryArchive(archivePath, dest string) error {
 	}
 	return nil
 }
+
+// ArchiveDir writes a skill directory into a zip archive for backups.
+func ArchiveDir(source, destination string) error {
+	if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
+		return fmt.Errorf("create backup dir: %w", err)
+	}
+	return zipDirectory(source, destination)
+}
