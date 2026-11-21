@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, TagItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
@@ -404,6 +404,27 @@ export async function deletePromptVersion(id: string, version: number): Promise<
 export async function deletePrompt(id: string): Promise<void> {
   if (!(await hasBackend())) throw new Error("删除提示词需要桌面应用");
   await AppService.DeletePrompt(id);
+}
+
+
+export async function listTags(): Promise<TagItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListTags()) ?? [];
+}
+
+export async function setSkillTags(slug: string, tags: string[]): Promise<SkillItem> {
+  if (!(await hasBackend())) throw new Error("编辑标签需要桌面应用");
+  return AppService.SetSkillTags(slug, tags);
+}
+
+export async function getSkillNote(slug: string): Promise<string> {
+  if (!(await hasBackend())) return "";
+  return AppService.GetSkillNote(slug);
+}
+
+export async function saveSkillNote(slug: string, body: string): Promise<string> {
+  if (!(await hasBackend())) throw new Error("保存笔记需要桌面应用");
+  return AppService.SaveSkillNote(slug, body);
 }
 
 export function formatBytes(bytes: number): string {

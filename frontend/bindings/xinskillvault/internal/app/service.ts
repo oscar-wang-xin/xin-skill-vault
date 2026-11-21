@@ -102,6 +102,10 @@ export function GetSkillDetail(slug: string): $CancellablePromise<$models.SkillD
     return $Call.ByID(194884134, slug);
 }
 
+export function GetSkillNote(slug: string): $CancellablePromise<string> {
+    return $Call.ByID(1906469463, slug);
+}
+
 export function GetVaultSummary(): $CancellablePromise<$models.VaultSummary> {
     return $Call.ByID(1189148126);
 }
@@ -168,6 +172,10 @@ export function ListSkillSnapshots(slug: string): $CancellablePromise<$models.Sn
 
 export function ListSkills(): $CancellablePromise<$models.SkillItem[] | null> {
     return $Call.ByID(780397452);
+}
+
+export function ListTags(): $CancellablePromise<$models.TagItem[] | null> {
+    return $Call.ByID(2389791015);
 }
 
 export function OpenAgentFolder(agentID: string): $CancellablePromise<void> {
@@ -244,6 +252,10 @@ export function SaveSkillDocument(slug: string, content: string, note: string): 
     return $Call.ByID(1775529333, slug, content, note);
 }
 
+export function SaveSkillNote(slug: string, body: string): $CancellablePromise<string> {
+    return $Call.ByID(4188066816, slug, body);
+}
+
 export function ScanAgents(): $CancellablePromise<scan$0.Result> {
     return $Call.ByID(1340619965);
 }
@@ -258,6 +270,10 @@ export function SetProjectAgents(id: string, agentIDs: string[] | null): $Cancel
 
 export function SetSkillEnabled(slug: string, enabled: boolean): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(58078040, slug, enabled);
+}
+
+export function SetSkillTags(slug: string, tags: string[] | null): $CancellablePromise<$models.SkillItem> {
+    return $Call.ByID(1657624630, slug, tags);
 }
 
 /**

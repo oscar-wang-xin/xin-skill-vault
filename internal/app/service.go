@@ -238,7 +238,11 @@ func (s *Service) ListSkills() ([]SkillItem, error) {
 	}
 	items := make([]SkillItem, 0, len(records))
 	for _, record := range records {
-		items = append(items, skillItem(record))
+		item := skillItem(record)
+		if tags, err := s.store.SkillTags(record.ID); err == nil {
+			item.Tags = tags
+		}
+		items = append(items, item)
 	}
 	return items, nil
 }
@@ -257,6 +261,9 @@ func (s *Service) GetSkillDetail(slug string) (*SkillDetail, error) {
 	if err == nil {
 		detail.Body = parsed.Body
 		detail.Tags = parsed.Meta.Tags
+	}
+	if tags, err := s.store.SkillTags(record.ID); err == nil {
+		detail.Tags = tags
 	}
 	files, err := vault.New(s.config.Current().VaultPath, s.store).SkillFiles(slug)
 	if err != nil {

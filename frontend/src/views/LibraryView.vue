@@ -11,6 +11,7 @@ import {
   deleteSkill,
   deleteSkillSnapshot,
   getSkillDetail,
+  getSkillNote,
   importSkillArchive,
   importSkillDirectory,
   listSkillSnapshots,
@@ -22,7 +23,9 @@ import {
   readSkillDocument,
   restoreSkillSnapshot,
   saveSkillDocument,
+  saveSkillNote,
   setSkillEnabled,
+  setSkillTags,
 } from "../lib/api";
 import type { SkillDetail, SkillItem, SnapshotItem } from "../../bindings/xinskillvault/internal/app/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
@@ -53,6 +56,11 @@ const confirmAction = ref<null | { type: "skill" | "snapshot"; title: string; me
 const distributeOpen = ref(false);
 const distributeItems = ref<{ slug: string; name: string }[]>([]);
 const comboCount = ref(0);
+const noteDraft = ref("");
+const noteSaving = ref(false);
+const tagModal = ref(false);
+const tagDraft = ref("");
+const tagSaving = ref(false);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -97,7 +105,8 @@ const filtered = computed(() => {
     if (!q) return true;
     return item.name.toLowerCase().includes(q)
       || item.slug.toLowerCase().includes(q)
-      || item.description.toLowerCase().includes(q);
+      || item.description.toLowerCase().includes(q)
+      || (item.tags ?? []).some((tag) => tag.toLowerCase().includes(q));
   });
   const direction = sortAsc.value ? 1 : -1;
   list = list.slice().sort((a, b) => {
@@ -350,6 +359,42 @@ async function onDistributed() {
   }
 }
 
+function openTagEdit() {
+  if (!detail.value) return;
+  tagDraft.value = (detail.value.tags ?? []).join(", ");
+  tagModal.value = true;
+}
+
+async function saveTags() {
+  if (!detail.value || tagSaving.value) return;
+  tagSaving.value = true;
+  try {
+    const tags = tagDraft.value.split(",").map((item) => item.trim()).filter(Boolean);
+    const updated = await setSkillTags(detail.value.slug, tags);
+    detail.value = { ...detail.value, tags: updated.tags ?? [] };
+    tagModal.value = false;
+    await loadSkills();
+    showToast("标签已更新");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    tagSaving.value = false;
+  }
+}
+
+async function saveNote() {
+  if (!detail.value || noteSaving.value) return;
+  noteSaving.value = true;
+  try {
+    await saveSkillNote(detail.value.slug, noteDraft.value);
+    showToast("笔记已保存");
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    noteSaving.value = false;
+  }
+}
+
 function toggleCheck(slug: string) {
   if (checked.value.has(slug)) checked.value.delete(slug);
   else checked.value.add(slug);
@@ -374,18 +419,22 @@ async function openDetail(item: SkillItem) {
   activeSlug.value = item.slug;
   detail.value = null;
   snapshots.value = [];
+  noteDraft.value = "";
+  tagModal.value = false;
   editing.value = false;
   draft.value = "";
   detailLoading.value = true;
   await nextTick();
   closeButton.value?.focus();
   try {
-    const [nextDetail, nextSnapshots] = await Promise.all([
+    const [nextDetail, nextSnapshots, nextNote] = await Promise.all([
       getSkillDetail(item.slug),
       listSkillSnapshots(item.slug),
+      getSkillNote(item.slug),
     ]);
     detail.value = nextDetail;
     snapshots.value = nextSnapshots;
+    noteDraft.value = nextNote;
   } catch (error) {
     showToast(errorMessage(error));
     activeSlug.value = null;
@@ -628,6 +677,16 @@ onUnmounted(() => {
         <template v-else>
         <p class="detail-desc">{{ detail.description }}</p>
         <div class="detail-tags">
+          <span class="section-label">标签</span>
+          <span v-for="tag in (detail.tags ?? [])" :key="tag" class="badge">{{ tag }}</span>
+          <span v-if="!(detail.tags ?? []).length" class="muted">暂无标签</span>
+          <button class="mini-link" @click="openTagEdit"><Icon name="edit" :size="11" /> 编辑</button>
+        </div>
+        <div class="detail-note">
+          <div class="note-head"><span class="section-label">笔记</span><button class="mini-link" :disabled="noteSaving" @click="saveNote">{{ noteSaving ? "保存中…" : "保存" }}</button></div>
+          <textarea v-model="noteDraft" class="note-box" placeholder="记录使用场景、注意事项…" />
+        </div>
+        <div class="detail-tags">
           <span class="badge accent">{{ detail.enabled ? "启用" : "禁用" }}</span>
           <span class="badge">{{ sourceLabel[detail.sourceType] ?? detail.sourceType }}</span>
           <span v-if="detail.version" class="badge">v{{ detail.version }}</span>
@@ -682,6 +741,20 @@ onUnmounted(() => {
         </template>
       </footer>
     </aside>
+
+    <div v-if="tagModal" class="confirm-overlay" @click.self.stop>
+      <div class="confirm-card">
+        <div class="confirm-head">
+          <div><h3>编辑标签</h3><p>用逗号分隔，例如：前端, 设计, 高频。</p></div>
+          <button class="icon-btn" :disabled="tagSaving" @click="tagModal = false"><Icon name="x" :size="15" /></button>
+        </div>
+        <div style="padding: 0 14px 12px"><input v-model="tagDraft" class="input" placeholder="前端, 设计" /></div>
+        <div class="confirm-foot">
+          <button class="btn" :disabled="tagSaving" @click="tagModal = false">取消</button>
+          <button class="btn primary" :disabled="tagSaving" @click="saveTags">{{ tagSaving ? "保存中…" : "保存" }}</button>
+        </div>
+      </div>
+    </div>
 
     <DistributeModal
       v-if="distributeOpen && distributeItems.length"
@@ -778,6 +851,13 @@ onUnmounted(() => {
 .file-row { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-bottom: 1px dashed var(--border-soft); font-size: 9.5px; color: var(--text-2); }
 .file-row:last-child { border-bottom: 0; }
 .file-row span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.detail-tags { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 8px 0; }
+.detail-tags .badge { font-size: 8.5px; }
+.mini-link { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-size: 9px; margin-left: 3px; }
+.detail-note { margin: 10px 0; }
+.note-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.note-box { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); padding: 8px 9px; font-size: 10px; line-height: 1.6; outline: none; }
+.note-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .drawer-foot { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); flex: none; }
 .editor-hint { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-4); font-size: 10px; }
 .skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }

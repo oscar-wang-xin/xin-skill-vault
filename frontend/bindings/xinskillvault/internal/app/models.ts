@@ -210,6 +210,13 @@ export interface SnapshotItem {
     "createdAt": number;
 }
 
+export interface TagItem {
+    "id": string;
+    "name": string;
+    "color": string;
+    "count": number;
+}
+
 export interface VaultSummary {
     "vaultPath": string;
     "promptRoot": string;

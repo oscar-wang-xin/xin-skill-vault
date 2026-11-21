@@ -74,6 +74,8 @@ Wails v3 application
 | `ListPromptCategories` / `CreatePromptCategory` / `UpdatePromptCategory` / `DeletePromptCategory` | 提示词分类与目录 |
 | `ListPrompts` / `CreatePrompt` / `GetPrompt` / `SavePrompt` / `DeletePrompt` | 提示词与 `.md` 版本文件 |
 | `GetPromptVersion` / `DeletePromptVersion` | 读取/删除版本，当前版本删除后自动切换 |
+| `ListTags` / `SetSkillTags` | 标签词典与技能标签 |
+| `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
