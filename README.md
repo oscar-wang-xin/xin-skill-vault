@@ -211,7 +211,7 @@ wails3 build
 wails3 generate bindings -ts -i -d frontend/bindings ./...
 ```
 
-开发分支为 `v1`；仓库默认分支 `main` 用于项目主页与发布入口。向 `v1` 提交代码。
+`main` 是应用开发主线和默认分支；`v0` 保留早期项目主页与历史记录。向 `main` 提交代码。
 
 ## 已知限制
 
