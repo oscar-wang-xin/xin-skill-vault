@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
 import DistributeModal from "./DistributeModal.vue";
+import BundlesPanel from "./BundlesPanel.vue";
 import { createCombo, deleteCombo, errorMessage, listComboSkills, listCombos, listSkills, updateCombo } from "../lib/api";
 import type { ComboItem, SkillItem } from "../../bindings/xinskillvault/internal/app/models";
 
@@ -187,6 +188,8 @@ onMounted(async () => {
         </button>
       </div>
     </div>
+
+    <BundlesPanel />
 
     <div v-if="modal" class="combo-overlay" @click.self.stop>
       <div class="combo-modal">

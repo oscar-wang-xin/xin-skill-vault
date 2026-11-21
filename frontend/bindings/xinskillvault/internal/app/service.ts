@@ -34,6 +34,10 @@ export function CheckDrift(): $CancellablePromise<distribute$0.Report[] | null> 
     return $Call.ByID(148441865);
 }
 
+export function CreateBundle(name: string, description: string, slugs: string[] | null): $CancellablePromise<$models.BundleItem> {
+    return $Call.ByID(3308472454, name, description, slugs);
+}
+
 export function CreateCombo(name: string, description: string, icon: string, slugs: string[] | null): $CancellablePromise<$models.ComboItem> {
     return $Call.ByID(635864016, name, description, icon, slugs);
 }
@@ -48,6 +52,10 @@ export function CreatePrompt(title: string, categoryID: string, tags: string[] |
 
 export function CreatePromptCategory(name: string, parentID: string, dirPath: string): $CancellablePromise<$models.PromptCategoryItem> {
     return $Call.ByID(4220875460, name, parentID, dirPath);
+}
+
+export function DeleteBundle(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2496953933, id);
 }
 
 export function DeleteCombo(id: string): $CancellablePromise<void> {
@@ -84,6 +92,10 @@ export function DeleteTag(id: string): $CancellablePromise<void> {
 
 export function DistributeSkill(slug: string, agentID: string, mode: string): $CancellablePromise<$models.SkillAssignment> {
     return $Call.ByID(210925762, slug, agentID, mode);
+}
+
+export function ExportBundle(id: string): $CancellablePromise<string> {
+    return $Call.ByID(2148280296, id);
 }
 
 export function ExportSkillPackage(slug: string): $CancellablePromise<string> {
@@ -140,6 +152,14 @@ export function ImportSkillDirectory(source: string): $CancellablePromise<$model
 
 export function InstallMarketSkill(source: string, slug: string, $namespace: string, force: boolean): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(3926582246, source, slug, $namespace, force);
+}
+
+export function ListBundleSkills(id: string): $CancellablePromise<$models.ComboSkillItem[] | null> {
+    return $Call.ByID(2416243052, id);
+}
+
+export function ListBundles(): $CancellablePromise<$models.BundleItem[] | null> {
+    return $Call.ByID(695125063);
 }
 
 export function ListComboSkills(id: string): $CancellablePromise<$models.ComboSkillItem[] | null> {
@@ -317,6 +337,10 @@ export function Timestamp(): $CancellablePromise<string> {
 
 export function UninstallSkill(slug: string, agentID: string): $CancellablePromise<void> {
     return $Call.ByID(1224419401, slug, agentID);
+}
+
+export function UpdateBundle(id: string, name: string, description: string, slugs: string[] | null): $CancellablePromise<$models.BundleItem> {
+    return $Call.ByID(941573515, id, name, description, slugs);
 }
 
 export function UpdateCombo(id: string, name: string, description: string, icon: string, slugs: string[] | null): $CancellablePromise<$models.ComboItem> {

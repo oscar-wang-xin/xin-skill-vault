@@ -24,6 +24,16 @@ export interface BundleImportResult {
     "bundle": string;
 }
 
+export interface BundleItem {
+    "id": string;
+    "name": string;
+    "description": string;
+    "skillCount": number;
+    "slugs": string[] | null;
+    "createdAt": number;
+    "updatedAt": number;
+}
+
 export interface ComboItem {
     "id": string;
     "name": string;

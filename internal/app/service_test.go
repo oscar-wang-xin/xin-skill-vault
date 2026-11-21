@@ -33,14 +33,14 @@ func TestServiceSummaryAndConfigSave(t *testing.T) {
 	service := NewService(manager, st, nil)
 
 	info := service.GetAppInfo()
-	if info.Name == "" || info.SchemaVersion != 3 {
+	if info.Name == "" || info.SchemaVersion != 4 {
 		t.Fatalf("unexpected info: %+v", info)
 	}
 	summary, err := service.GetVaultSummary()
 	if err != nil {
 		t.Fatalf("summary: %v", err)
 	}
-	if summary.SkillCount != 0 || summary.SchemaVersion != 3 {
+	if summary.SkillCount != 0 || summary.SchemaVersion != 4 {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
 

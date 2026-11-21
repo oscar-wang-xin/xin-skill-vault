@@ -9,6 +9,7 @@ export {
 export type {
     AppInfo,
     BundleImportResult,
+    BundleItem,
     ComboItem,
     ComboSkillItem,
     DistributionTarget,

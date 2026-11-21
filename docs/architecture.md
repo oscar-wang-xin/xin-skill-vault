@@ -80,6 +80,8 @@ Wails v3 application
 | `GetSkillNote` / `SaveSkillNote` | 技能笔记读写 |
 | `ExportSkillPackage` / `ExportSkillsBundle` | 导出单个 `.skill` 或多技能 Bundle zip |
 | `PickBundleArchive` / `ImportBundleArchive` | 选择并导入 Bundle：解析 bundle.json、逐个技能入库 |
+| `ListBundles` / `CreateBundle` / `UpdateBundle` / `DeleteBundle` | 持久化 Bundle CRUD |
+| `ListBundleSkills` / `ExportBundle` | Bundle 技能引用与重复导出 |
 | `Timestamp` | 前端探测真实后端是否可用 |
 
 绑定由以下命令生成，禁止手改：
@@ -100,7 +102,7 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 
 - [x] `wails3 build` 产出 Windows 可执行文件
 - [x] 配置/仓库/日志/数据库首次启动自动创建
-- [x] SQLite 迁移可重复执行，schema v3（含 snapshots / projects）
+- [x] SQLite 迁移可重复执行，schema v4（含 snapshots / projects / bundles）
 - [x] Go 单元测试覆盖配置、迁移、服务摘要
 - [x] 前端 `vue-tsc` + `vite build`
 - [x] 6 个路由、主题/拟态、命令面板、配置保存
