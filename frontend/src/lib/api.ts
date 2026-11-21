@@ -427,6 +427,12 @@ export async function saveSkillNote(slug: string, body: string): Promise<string>
   return AppService.SaveSkillNote(slug, body);
 }
 
+
+export async function exportSkillPackage(slug: string): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导出 .skill 需要桌面应用");
+  return AppService.ExportSkillPackage(slug);
+}
+
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;

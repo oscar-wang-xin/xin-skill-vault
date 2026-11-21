@@ -10,6 +10,7 @@ import {
   formatBytes,
   deleteSkill,
   deleteSkillSnapshot,
+  exportSkillPackage,
   getSkillDetail,
   getSkillNote,
   importSkillArchive,
@@ -61,6 +62,7 @@ const noteSaving = ref(false);
 const tagModal = ref(false);
 const tagDraft = ref("");
 const tagSaving = ref(false);
+const exporting = ref(false);
 const driftReports = ref<DriftReport[]>([]);
 const toast = ref("");
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -356,6 +358,19 @@ async function onDistributed() {
     } catch {
       /* list refresh is enough */
     }
+  }
+}
+
+async function exportPackage() {
+  if (!detail.value || exporting.value) return;
+  exporting.value = true;
+  try {
+    const path = await exportSkillPackage(detail.value.slug);
+    if (path) showToast(`已导出：${path}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    exporting.value = false;
   }
 }
 
@@ -732,6 +747,7 @@ onUnmounted(() => {
         </template>
         <template v-else>
           <button class="btn primary" :disabled="!detail || actionBusy" @click="openDistribute"><Icon name="link" :size="12" /> 分发</button>
+          <button class="btn" :disabled="!detail || exporting" @click="exportPackage"><Icon name="download" :size="12" /> {{ exporting ? "打包中…" : "打包" }}</button>
           <button class="btn" :disabled="!detail || actionBusy" @click="startEdit"><Icon name="edit" :size="12" /> 编辑</button>
           <button class="btn" :disabled="!detail" @click="openSkillDir"><Icon name="folder" :size="13" /> 打开目录</button>
           <button class="btn" :disabled="!detail || actionBusy" @click="toggleEnabled">{{ detail?.enabled ? "禁用" : "启用" }}</button>
@@ -858,7 +874,7 @@ onUnmounted(() => {
 .note-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .note-box { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); padding: 8px 9px; font-size: 10px; line-height: 1.6; outline: none; }
 .note-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.drawer-foot { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); flex: none; }
+.drawer-foot { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--border-soft); flex: none; }
 .editor-hint { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-4); font-size: 10px; }
 .skill-editor { width: 100%; min-height: 420px; resize: vertical; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); padding: 10px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.65; outline: none; }
 .skill-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }

@@ -82,6 +82,10 @@ export function DistributeSkill(slug: string, agentID: string, mode: string): $C
     return $Call.ByID(210925762, slug, agentID, mode);
 }
 
+export function ExportSkillPackage(slug: string): $CancellablePromise<string> {
+    return $Call.ByID(4024737571, slug);
+}
+
 export function GetAppInfo(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(3019495029);
 }
