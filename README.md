@@ -221,11 +221,6 @@ wails3 generate bindings -ts -i -d frontend/bindings ./...
 - 提示词分类暂无跨父级拖动
 - 笔记双链尚未接入
 
-## 参考
-
-- [SkillsGate](https://github.com/skillsgate/skillsgate)
-- [Skills Manager](https://github.com/xingkongliang/skills-manager)
-
 ## License
 
 [MIT](LICENSE) © 2026 Xin
