@@ -1,226 +1,223 @@
-<p align="center">
-  <img src="brand/logo.svg" width="92" alt="Xin Skill Vault" />
-</p>
+# Xin Skill Vault · Xin 技能管理
 
-<h1 align="center">Xin Skill Vault</h1>
+> 把散落在各个 Agent 目录里的 Skills 统一管理：集中收录、按需分发，一处更新，多处生效。
 
-<p align="center">
-  一个本地优先的 AI Agent Skill 中央仓库。<br/>
-  导入、编辑、组合、分发、追踪、回滚，全部集中在一个桌面应用里。
-</p>
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-1f6feb?style=flat-square)](#下载)
+[![Version](https://img.shields.io/badge/version-v0.1.1-2f81f7?style=flat-square)](https://github.com/oscar-wang-xin/xin-skill-vault/releases)
+[![License](https://img.shields.io/badge/license-MIT-2ea043?style=flat-square)](LICENSE)
+[![Local first](https://img.shields.io/badge/local--first-no%20account%20%C2%B7%20no%20telemetry-6e7681?style=flat-square)](#设计原则)
 
-<p align="center">
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0e9f74" /></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555" />
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.1-0e9f74" />
-</p>
+[官网](https://app.zhi-wo.com/app/xin-skill-vault/) · [下载](#下载) · [使用](#使用) · [构建](#从源码构建) · [GitHub](https://github.com/oscar-wang-xin/xin-skill-vault)
 
----
+![Xin Skill Vault 技能库](assets/preview-library.png)
 
-## 为什么需要它
+## 简介
 
-Claude Code、Codex、Cursor、OpenCode、WorkBuddy、Alma、Cherry Studio、CodeBuddy……每个 Agent 都有自己的 skill 目录。
+**Xin Skill Vault** 是一个本地优先的 Agent Skill 中央仓库管理器。它不绑定某个 Agent，而是把 OpenCode、Claude Code、Codex、Cursor、WorkBuddy、Alma、Cherry Studio 等工具的 skills 目录统一接到一个中央仓库：
 
-同一个技能经常被复制到多个目录：改了一处，忘了另外几处；谁装了什么、版本是否一致、目标目录有没有被改过，全靠记忆。
+- 技能只在仓库里保存一份，避免每个 Agent 各复制一份。
+- 分发到 Agent 时优先使用 **Junction**（Windows，无需管理员权限），也可以使用 Symlink 或复制独立副本。
+- 目录、分发、备注、标签、组合、提示词和来源全部在本地管理，不上传、不需要账号。
+- 支持项目级 skills 目录，例如 `D:\app\.agents\skills`。
 
-Xin Skill Vault 把这些目录收拢成一个本地仓库：
-
-- **仓库是主干**：`~/.skill-repo` 中每个技能只有一份实体。
-- **Agent 目录是部署目标**：通过 junction、符号链接或复制安装，状态可追踪。
-- **文件系统是事实来源**：SQLite 只是可重建的索引。
-- **本地优先**：不需要账号，不上传技能内容，不依赖云端服务。
+本项目不是 Skill 运行时，也**不会执行**任何技能内容。它只负责文件、链接和元数据。
 
 ## 功能
 
-### Skill 仓库
+### 中央仓库与多来源收录
 
-- 从本地目录、ZIP、`.skill`、Bundle 导入
-- 扫描本机 Agent 目录，发现未导入/有变更的技能
-- SKILL.md 查看与编辑，保存前自动生成快照
-- 启用/禁用、删除到回收站、历史快照恢复
-- SHA256 内容指纹、分发计数、标签与笔记
+- 默认仓库位置：`%USERPROFILE%\.skill-repo`，可在设置中更改。
+- 导入本地文件夹、ZIP、`.skill` 和 Bundle。
+- 扫描本机 Agent 目录，识别未导入/有变更的技能。
+- 市场安装：SkillHub 与 skills.sh。
+- 每个技能计算 SHA256 内容指纹，SQLite 仅作为可重建索引。
 
-### 分发与项目
+### 分发与目录管理
 
-- 单个或批量分发到多个 Agent
-- 分发模式：
-  - Windows 优先 **junction**
-  - 次选 **symlink**
-  - 失败自动降级 **copy**
-- 项目级 skill 目录，不污染全局 Agent
-- 漂移检测：仓库已更新、安装件被修改、安装件缺失
-- 单条/批量修复；复制件修复前自动备份
-- Agent 页与项目页均支持查看、移除和打开目录
+- 单个技能或整组技能批量分发到多个 Agent / 项目。
+- Windows 使用 Junction；失败回退 Symlink；再失败自动复制。
+- 项目级技能目录，例如：
+  - `<project>/.claude/skills`
+  - `<project>/.cursor/skills`
+  - `<project>/.agents/skills`
+- 查看每个安装件的模式、路径与健康状态。
+- 支持单个/批量移除分发。
 
-### 组合、Bundle 与打包
+### 版本、快照与漂移
 
-- 技能组合：保存技能集合，一键复用分发
-- 持久化 Bundle：保存多个技能，重复导出
-- 单技能导出 `.skill`（zip + manifest）
-- Bundle 导入：一次导入多个技能
+- 编辑 `SKILL.md` 前自动生成快照。
+- 扫描结果覆盖更新前保存完整目录 zip 快照。
+- 恢复技能快照，不会静默丢失当前版本。
+- 检测三类漂移：
+  - 仓库已更新
+  - 安装件被本地修改
+  - 安装件缺失
+- 单条或批量修复；复制件修复前自动备份。
 
-### 提示词
+### 组合、Bundle 与提示词
 
-- 分类树、自定义保存目录、同级拖动排序
-- 每个版本独立保存为 `.md` 文件
-- 80vw Markdown 编辑器，左右分栏可拖动
-- 版本历史、复制、删除版本、未保存保护
+- **组合**：把技能编成组合，一键复用分发弹层。
+- **Bundle**：持久化多个技能，重复导出为可分发包；支持 Bundle 导入。
+- **提示词**：分类树、同级拖动、Markdown 编辑器、版本历史；每个版本独立保存为 `.md` 文件。
+- **标签与笔记**：标签词典、标签筛选、技能笔记。
 
-### 市场
+### 桌面体验
 
-只展示实际可调用的源：
+- 六套主题与拟态/线性两套质感。
+- 侧栏可折叠，项目左列可拖宽。
+- `Ctrl/Cmd+K` 命令面板。
+- 诊断包导出：应用信息、配置、日志，不包含技能正文。
+- 本地优先：没有账号、没有遥测、没有云端依赖。
 
-- **SkillHub**：搜索、分类、zip 安装
-- **skills.sh**：sitemap 搜索、GitHub 仓库安装
+![设置](assets/preview-settings.png)
 
-带搜索结果缓存、安装前脚本/危险命令审计；高风险安装需要二次确认。
+## 下载
 
-## 支持的 Agent
+- **项目主页**：<https://app.zhi-wo.com/app/xin-skill-vault/>
+- **GitHub Releases**：<https://github.com/oscar-wang-xin/xin-skill-vault/releases/latest>
+- 构建产物不提交到 Git 仓库；请从 Releases 下载，或按下方说明从源码构建。
 
-| Agent | 默认 skill 目录 |
-| --- | --- |
-| Claude Code | `~/.claude/skills` |
-| Codex CLI | `~/.codex/skills` |
-| Cursor | `~/.cursor/skills` |
-| OpenCode | `~/.config/opencode/skills` |
-| WorkBuddy | `~/.workbuddy/skills` |
-| DeepSeek Harness | `~/.dsh/skills` |
-| Alma | `~/.config/alma/skills` |
-| CodeBuddy | `~/.codebuddy/skills` |
-| Reasonix | `~/.reasonix/skills` |
-| Universal | `~/.agents/skills` |
-| Cherry Studio | `%APPDATA%\CherryStudio\Data\Skills` |
+| 平台 | 发布文件 | 说明 |
+|---|---|---|
+| Windows 10 / 11 x64 | `XinSkillVault-0.1.1-win-x64.zip` | 解压后运行 `xinskillvault.exe`；需要 WebView2 Runtime |
+| macOS / Linux | 源码构建 | 当前未提供官方发布包 |
 
-检测不到目录的 Agent 不会显示为可分发目标。
+> 当前 Windows 构建未做代码签名，SmartScreen 可能提示确认。
 
-## 快速开始
+## 使用
 
-### 直接使用（Windows）
+### 首次启动
 
-从 [Releases](https://github.com/oscar-wang-xin/xin-skill-vault/releases) 下载：
+1. 启动应用：Windows 使用 `xinskillvault.exe`。
+2. 应用会在 `~/.skill-repo`（Windows 为 `%USERPROFILE%\.skill-repo`）创建中央仓库。
+3. 点击「导入目录」或「ZIP」：
+   - 导入本地技能目录
+   - 导入 `.zip` / `.skill` 包
+   - 导入 Bundle
+4. 在「发现」页扫描本机 Agent 目录。
+5. 在技能详情中查看文件、指纹、标签、笔记和分发状态。
+6. 按需分发到 Agent 或项目目录。
 
-```text
-XinSkillVault-0.1.1-win-x64.zip
-```
+### 仓库位置
 
-解压后运行：
+设置 → 路径：
 
-```text
-xinskillvault.exe
-```
+- 仓库：默认 `%USERPROFILE%\.skill-repo`
+- 提示词：默认 `~/.xin-skill-vault/prompts`
+- 配置文件：`%APPDATA%\XinSkillVault\config.json`
 
-免安装，不写系统 PATH。
+修改仓库位置后，请确认已有的 Junction / Symlink 分发是否仍指向有效目录。
 
-### 从源码构建
+![仓库设置](assets/preview-vault.png)
 
-环境要求：
+## 从源码构建
+
+### 环境
 
 - Go 1.26+
 - Node.js 20+
 - Wails v3.1.0
+- Windows 10 / 11（当前主要目标）
 
-```bash
-# 安装 Wails CLI
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
+### 开发
 
-# 安装前端依赖
-cd frontend && npm ci && cd ..
-
-# 开发模式
+```powershell
 wails3 task dev
-
-# 生产构建
-wails3 build
 ```
 
-Windows 免安装包：
+### 测试
+
+```powershell
+go test ./internal/...
+```
+
+### 构建
+
+```powershell
+wails3 build
+# -> bin/xinskillvault.exe
+```
+
+### Windows 免安装包
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version 0.1.1
+# -> bin/release/XinSkillVault-0.1.1-win-x64.zip
 ```
 
-产物：
+### 前端预览
 
-```text
-bin/release/XinSkillVault-0.1.1-win-x64.zip
+没有 Wails 宿主时，前端会使用 mock 配置，不写真实文件：
+
+```powershell
+cd frontend
+npm ci
+npm run dev
 ```
-
-## 数据与隐私
-
-默认位置：
-
-| 内容 | 路径 |
-| --- | --- |
-| 配置 | `%APPDATA%\XinSkillVault\config.json` |
-| 仓库 | `~/.skill-repo` |
-| SQLite 索引 | `<vault>/.skillrepo/vault.db` |
-| 日志 | `<vault>/.skillrepo/logs/app.log` |
-| 提示词 | `~/.xin-skill-vault/prompts` |
-| 回收站 | `<vault>/.skillrepo/trash` |
-| 修复备份 | `<vault>/.skillrepo/backups` |
-
-- 不收集遥测。
-- 不上传技能或提示词内容。
-- 市场搜索会访问 SkillHub / skills.sh 及其 GitHub 仓库。
-- 诊断包只包含应用信息、配置、日志路径和最近日志，不包含技能正文。
-
-## 安全边界
-
-- ZIP / Bundle 导入有路径穿越（zip-slip）防护与体积限制
-- 技能目录内容指纹忽略 `.git`、`node_modules`、manifest 等元数据
-- 分发链接失败自动降级为复制
-- junction 删除只移除 reparse point，不递归删除目标内容
-- 市场安装前检查脚本文件与危险命令
-- 高风险市场安装需要显式确认
 
 ## 项目结构
 
 ```text
-main.go                 Wails 入口与依赖装配
-internal/
-  app/                  Wails 服务、项目、市场、提示词、Bundle
-  agent/                Agent 适配器与检测
-  config/               配置读写
-  distribute/           分发、漂移检测与修复
-  market/               SkillHub / skills.sh Provider
-  scan/                 Agent 目录扫描
-  skill/                SKILL.md 解析、slug、指纹
-  skillpack/            .skill / Bundle 打包
-  store/                SQLite 迁移与索引
-  vault/                仓库导入、编辑、快照、回收站
-frontend/               Vue 3 + TypeScript + Vite
-examples/demo-skill/    可导入示例技能
-brand/                  标识与图标资源
-docs/architecture.md    架构说明
-scripts/                发布构建脚本
+xin-skill-vault/
+├─ README.md
+├─ LICENSE
+├─ assets/                     # README 截图
+├─ main.go                     # Wails 启动与依赖装配
+├─ internal/
+│  ├─ app/                     # Wails 服务、项目、市场、提示词、Bundle
+│  ├─ agent/                   # Agent 适配器与目录检测
+│  ├─ config/                  # 配置读写
+│  ├─ distribute/              # 分发、漂移检测与修复
+│  ├─ market/                  # SkillHub / skills.sh Provider
+│  ├─ scan/                    # Agent 目录扫描
+│  ├─ skill/                   # SKILL.md 解析、slug、指纹
+│  ├─ skillpack/               # .skill / Bundle 打包
+│  ├─ store/                   # SQLite 迁移与索引
+│  └─ vault/                   # 仓库导入、编辑、快照、回收站
+├─ frontend/                   # Vue 3 + TypeScript + Vite
+├─ examples/demo-skill/        # 可导入示例技能
+├─ brand/                      # 标识与图标资源
+├─ docs/architecture.md        # 架构说明
+├─ build/                      # Wails 平台打包脚手架
+└─ scripts/                    # 图标与发布构建脚本
 ```
 
-## 开发
+## 设计原则
 
-```bash
-# Go 测试
-go test ./internal/...
+- **本地优先**：没有账号，没有遥测，没有云端依赖。
+- **仓库是唯一事实源**：技能内容只保留一份。
+- **不执行内容**：只管理文件与链接，不运行技能。
+- **可恢复**：删除索引可以从文件系统重建。
+- **安全导入**：ZIP / Bundle 有路径穿越与体积防护；市场安装有静态审计。
+- **Windows 优先，但不锁死 Windows**：核心代码保留 macOS / Linux 的 Symlink 路径。
 
-# 前端类型检查与构建
-cd frontend && npm run build
+## 路线图
 
-# Wails 构建
-wails3 build
+- [x] v0.1.1：中央仓库、目录/ZIP/Bundle 导入、扫描发现、Junction/Copy 分发、项目模块、提示词、组合、标签、笔记、市场与诊断包。
+- [ ] URL / Git 仓库导入。
+- [ ] 应用内更新检查。
+- [ ] macOS / Linux 官方构建与签名。
+- [ ] 笔记双链与更多组织能力。
 
-# 生成绑定（不要手改 frontend/bindings）
-wails3 generate bindings -ts -i -d frontend/bindings ./...
-```
+## 贡献
 
-`main` 是应用开发主线和默认分支；`v0` 保留早期项目主页与历史记录。向 `main` 提交代码。
+欢迎提交 Issue 和 Pull Request：
 
-## 已知限制
-
-- URL 导入尚未接入
-- 应用内自动更新尚未接入
-- Windows 目前只提供免安装 zip
-- 提示词分类暂无跨父级拖动
-- 笔记双链尚未接入
+- Bug / 功能建议：<https://github.com/oscar-wang-xin/xin-skill-vault/issues>
+- 提交前请先运行 `go test ./internal/...` 和 `npm run build`。
+- 不要提交本地仓库数据、构建产物、个人路径或密钥。
+- 内部原型、开发计划和评审资料不会进入公开仓库。
 
 ## License
 
-[MIT](LICENSE) © 2026 Xin
+MIT © 2026 Xin Skill Vault contributors
+
+---
+
+## English overview
+
+**Xin Skill Vault** is a local-first desktop manager for Agent Skills. It keeps one central vault (`~/.skill-repo` by default), imports skills from folders, ZIP / `.skill` packages, Bundles, existing Agent installs and selected markets, then distributes them through Windows Junctions, Symlinks or copies.
+
+It includes project-level skill directories, content snapshots, drift detection and repair, reusable skill combos, Bundles, a Markdown prompt library with version history, tags, notes, market search with security auditing, and diagnostics export.
+
+The app is local-first: no account, no telemetry, no cloud dependency. Built with Go + Wails v3 + Vue 3/TypeScript. Licensed under MIT.

@@ -17,6 +17,7 @@ New-Item -ItemType Directory -Path $stage -Force | Out-Null
 Copy-Item (Join-Path $root "bin\xinskillvault.exe") $stage
 Copy-Item (Join-Path $root "README.md") $stage
 Copy-Item (Join-Path $root "LICENSE") $stage
+Copy-Item (Join-Path $root "assets") $stage -Recurse
 $zip = Join-Path $releaseRoot "XinSkillVault-$Version-win-x64.zip"
 if (Test-Path $zip) { Remove-Item -Force $zip }
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
