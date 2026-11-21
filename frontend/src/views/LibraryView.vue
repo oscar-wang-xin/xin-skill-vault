@@ -14,6 +14,7 @@ import {
   exportSkillsBundle,
   getSkillDetail,
   getSkillNote,
+  importBundleArchive,
   importSkillArchive,
   importSkillDirectory,
   listSkillSnapshots,
@@ -21,6 +22,7 @@ import {
   listTags,
   openSkillFolder,
   openVaultFolder,
+  pickBundleArchive,
   pickSkillArchive,
   pickSkillDirectory,
   readSkillDocument,
@@ -236,6 +238,24 @@ async function importArchive() {
     const item = await importSkillArchive(archive);
     await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
     showToast(`已导入压缩包：${item.name}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function importBundle() {
+  if (importing.value) return;
+  importing.value = true;
+  try {
+    const archive = await pickBundleArchive();
+    if (!archive) return;
+    const result = await importBundleArchive(archive);
+    await Promise.all([vault.refresh(), loadSkills(), loadDrift(), loadTags()]);
+    const imported = result.imported?.length ?? 0;
+    const failed = result.errors?.length ?? 0;
+    showToast(failed ? `已导入 ${imported} 个，${failed} 个失败` : `已导入 Bundle：${imported} 个技能`);
   } catch (error) {
     showToast(errorMessage(error));
   } finally {
@@ -611,6 +631,9 @@ onUnmounted(() => {
           </button>
           <button class="btn" :disabled="importing" title="从 .zip / .skill 压缩包导入" @click="importArchive">
             <Icon name="file" :size="13" /> ZIP
+          </button>
+          <button class="btn" :disabled="importing" title="导入 Bundle zip" @click="importBundle">
+            <Icon name="layers" :size="13" /> Bundle
           </button>
           <button class="btn" :disabled="refreshing" title="重新读取本地仓库" @click="refresh">
             <Icon name="refresh" :size="14" :class="{ spin: refreshing }" />

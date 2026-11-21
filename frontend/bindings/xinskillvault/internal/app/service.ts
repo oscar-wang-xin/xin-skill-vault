@@ -122,6 +122,10 @@ export function GetVaultSummary(): $CancellablePromise<$models.VaultSummary> {
     return $Call.ByID(1189148126);
 }
 
+export function ImportBundleArchive(archivePath: string): $CancellablePromise<$models.BundleImportResult> {
+    return $Call.ByID(590949431, archivePath);
+}
+
 export function ImportScannedSkill(agentID: string, source: string): $CancellablePromise<$models.SkillItem> {
     return $Call.ByID(1505055026, agentID, source);
 }
@@ -216,6 +220,10 @@ export function OpenSkillFolder(slug: string): $CancellablePromise<void> {
 
 export function OpenVaultFolder(): $CancellablePromise<void> {
     return $Call.ByID(4135195190);
+}
+
+export function PickBundleArchive(): $CancellablePromise<string> {
+    return $Call.ByID(3982767323);
 }
 
 export function PickProjectDirectory(): $CancellablePromise<string> {

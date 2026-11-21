@@ -17,6 +17,13 @@ export interface AppInfo {
     "schemaVersion": number;
 }
 
+export interface BundleImportResult {
+    "imported": string[] | null;
+    "skipped": string[] | null;
+    "errors": string[] | null;
+    "bundle": string;
+}
+
 export interface ComboItem {
     "id": string;
     "name": string;

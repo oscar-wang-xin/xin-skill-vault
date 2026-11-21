@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, TagItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AppInfo, BundleImportResult, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, TagItem, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
@@ -453,6 +453,17 @@ export async function mergeTags(sourceID: string, targetID: string): Promise<voi
 export async function exportSkillsBundle(name: string, slugs: string[]): Promise<string> {
   if (!(await hasBackend())) throw new Error("导出 Bundle 需要桌面应用");
   return AppService.ExportSkillsBundle(name, slugs);
+}
+
+
+export async function pickBundleArchive(): Promise<string> {
+  if (!(await hasBackend())) throw new Error("导入 Bundle 需要桌面应用");
+  return AppService.PickBundleArchive();
+}
+
+export async function importBundleArchive(path: string): Promise<BundleImportResult> {
+  if (!(await hasBackend())) throw new Error("导入 Bundle 需要桌面应用");
+  return AppService.ImportBundleArchive(path);
 }
 
 export function formatBytes(bytes: number): string {
