@@ -56,6 +56,7 @@ Wails v3 application
 | `RestoreSkillSnapshot` / `DeleteSkillSnapshot` | 恢复/删除历史快照（恢复前会再写快照） |
 | `OpenSkillFolder` | 打开单个技能目录 |
 | `ScanAgents` | 检测 Agent 目录、扫描技能并返回 Finding |
+| `ListAgentSkills` | Agent 目录中的已管理/未纳管技能列表 |
 | `ImportScannedSkill` / `UpdateScannedSkill` | 从扫描结果导入/覆盖更新（覆盖前写完整目录 zip 快照） |
 | `OpenAgentFolder` | 打开 Agent skill 目录 |
 | `ListDistributionTargets` | 确保 Agent target 入库，返回检测/已分发状态 |

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import Icon from "../components/Icon.vue";
-import { checkDrift, errorMessage, openAgentFolder, repairAllDrift, repairDrift, scanAgents } from "../lib/api";
+import { checkDrift, errorMessage, importScannedSkill, listAgentSkills, openAgentFolder, repairAllDrift, repairDrift, scanAgents, uninstallSkill } from "../lib/api";
+import type { AgentSkillItem } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 
@@ -11,17 +12,62 @@ const drift = ref<DriftReport[]>([]);
 const repairing = ref("");
 const confirmReport = ref<DriftReport | null>(null);
 const confirmAll = ref(false);
+const confirmRemove = ref<AgentSkillItem | null>(null);
+const selectedID = ref("");
+const agentSkills = ref<AgentSkillItem[]>([]);
+const skillsLoading = ref(false);
 const toast = ref("");
 let toastTimer: number | undefined;
 
 const agents = computed(() => (result.value?.agents ?? []).slice().sort((a, b) => Number(b.detected) - Number(a.detected) || a.name.localeCompare(b.name)));
 const detected = computed(() => agents.value.filter((agent) => agent.detected).length);
 const issues = computed(() => drift.value.filter((report) => report.status !== "ok"));
+const selectedAgent = computed(() => agents.value.find((agent) => agent.id === selectedID.value) ?? null);
 
 function showToast(message: string) {
   toast.value = message;
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => { toast.value = ""; }, 2400);
+}
+
+function modeLabel(mode: string): string {
+  if (mode === "copy") return "复制";
+  if (mode === "junction" || mode === "link") return "链接";
+  return "—";
+}
+
+function statusLabel(status: string): string {
+  if (status === "ok") return "正常";
+  if (status === "stale") return "仓库已更新";
+  if (status === "modified") return "安装件被修改";
+  if (status === "missing") return "安装件缺失";
+  if (status === "unmanaged") return "未纳管";
+  return status;
+}
+
+function driftLabel(status: string): string {
+  return statusLabel(status);
+}
+
+async function loadAgentSkills() {
+  if (!selectedAgent.value) {
+    agentSkills.value = [];
+    return;
+  }
+  skillsLoading.value = true;
+  try {
+    agentSkills.value = await listAgentSkills(selectedAgent.value.id);
+  } catch (error) {
+    agentSkills.value = [];
+    showToast(errorMessage(error));
+  } finally {
+    skillsLoading.value = false;
+  }
+}
+
+async function selectAgent(id: string) {
+  selectedID.value = id;
+  await loadAgentSkills();
 }
 
 async function refresh() {
@@ -31,6 +77,10 @@ async function refresh() {
     const [scan, reports] = await Promise.all([scanAgents(), checkDrift()]);
     result.value = scan;
     drift.value = reports;
+    if (!scan.agents?.some((agent) => agent.id === selectedID.value && agent.detected)) {
+      selectedID.value = scan.agents?.find((agent) => agent.detected)?.id ?? "";
+    }
+    await loadAgentSkills();
   } catch (error) {
     showToast(errorMessage(error));
   } finally {
@@ -46,15 +96,28 @@ async function openFolder(id: string) {
   }
 }
 
-function modeLabel(mode: string): string {
-  return mode === "copy" ? "复制" : "链接";
+async function importOne(item: AgentSkillItem) {
+  if (!selectedAgent.value) return;
+  try {
+    await importScannedSkill(selectedAgent.value.id, item.installedPath);
+    await refresh();
+    showToast(`已导入：${item.name}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  }
 }
 
-function driftLabel(status: string): string {
-  if (status === "stale") return "仓库已更新";
-  if (status === "modified") return "安装件被修改";
-  if (status === "missing") return "安装件缺失";
-  return status;
+async function removeOne() {
+  if (!confirmRemove.value || !selectedAgent.value) return;
+  const item = confirmRemove.value;
+  try {
+    await uninstallSkill(item.slug, selectedAgent.value.id);
+    confirmRemove.value = null;
+    await refresh();
+    showToast(`已移除：${item.name}`);
+  } catch (error) {
+    showToast(errorMessage(error));
+  }
 }
 
 function askRepairAll() {
@@ -121,24 +184,63 @@ onMounted(refresh);
       <p>桌面应用会检测本机 Claude Code、Codex、Cursor、Alma 等常见 skill 目录。</p>
     </div>
 
-    <div v-else class="agent-grid">
-      <div v-for="agent in agents" :key="agent.id" class="card agent-card" :class="{ muted: !agent.detected }">
-        <div class="agent-ava" :style="{ background: agent.color }">{{ agent.short }}</div>
-        <div class="agent-main">
-          <div class="agent-name">
-            {{ agent.name }}
-            <span class="badge" :class="agent.detected ? 'accent' : ''">{{ agent.detected ? "已检测" : "未安装" }}</span>
-          </div>
-          <div class="agent-path mono">{{ agent.path }}</div>
-        </div>
-        <div class="agent-count">
-          <b>{{ agent.count }}</b>
-          <span>技能</span>
-        </div>
-        <button class="btn sm" :disabled="!agent.detected" title="打开该 Agent 的 skill 目录" @click="openFolder(agent.id)">
-          <Icon name="folder" :size="12" /> 打开
+    <div v-else class="agent-layout">
+      <aside class="agent-list">
+        <button
+          v-for="agent in agents"
+          :key="agent.id"
+          class="agent-list-row"
+          :class="{ active: agent.id === selectedID, muted: !agent.detected }"
+          @click="selectAgent(agent.id)"
+        >
+          <span class="agent-ava" :style="{ background: agent.color }">{{ agent.short }}</span>
+          <span class="agent-list-main">
+            <b>{{ agent.name }}</b>
+            <em class="mono">{{ agent.path }}</em>
+            <small>{{ agent.count }} 个技能 · {{ agent.detected ? "已检测" : "未安装" }}</small>
+          </span>
         </button>
-      </div>
+      </aside>
+
+      <section v-if="selectedAgent" class="agent-detail">
+        <header class="agent-detail-head">
+          <div>
+            <h2>{{ selectedAgent.name }}</h2>
+            <span class="mono">{{ selectedAgent.path }}</span>
+          </div>
+          <div class="agent-detail-actions">
+            <button class="btn sm" @click="openFolder(selectedAgent.id)"><Icon name="folder" :size="12" /> 打开目录</button>
+          </div>
+        </header>
+
+        <div v-if="skillsLoading" class="empty-mini">正在读取 Agent 技能…</div>
+        <div v-else-if="!agentSkills.length" class="empty-mini">这个 Agent 目录里还没有发现技能。</div>
+        <div v-else class="agent-skill-table">
+          <div class="as-row as-head"><span>#</span><span>技能</span><span>方式</span><span>状态</span><span>操作</span></div>
+          <div v-for="(item, index) in agentSkills" :key="`${item.slug}:${item.installedPath}`" class="as-row">
+            <span class="as-idx">{{ index + 1 }}</span>
+            <span class="as-main">
+              <b>{{ item.name }}</b>
+              <em>{{ item.description }}</em>
+              <small class="mono">{{ item.slug }}<template v-if="item.version"> · v{{ item.version }}</template></small>
+            </span>
+            <span class="badge" :class="{ accent: item.managed }">{{ modeLabel(item.mode) }}</span>
+            <span class="badge" :class="{ warn: item.status !== 'ok', accent: item.status === 'ok' }">{{ statusLabel(item.status) }}</span>
+            <span class="as-actions">
+              <button v-if="!item.managed" class="btn sm" @click="importOne(item)">导入</button>
+              <button v-else class="mini-link danger" @click="confirmRemove = item">移除</button>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="agent-detail agent-placeholder">
+        <div class="empty">
+          <div class="empty-ico"><Icon name="agent" :size="19" /></div>
+          <h3>选择一个 Agent</h3>
+          <p>左侧选择 Agent，查看它目录中的技能和安装状态。</p>
+        </div>
+      </section>
     </div>
 
     <div v-if="issues.length" class="drift-section">
@@ -203,21 +305,49 @@ onMounted(refresh);
       </div>
     </div>
 
+    <div v-if="confirmRemove" class="agent-confirm" @click.self.stop>
+      <div class="agent-confirm-card">
+        <h3>移除 Agent 技能</h3>
+        <p>将删除 <b>{{ confirmRemove.name }}</b> 在 {{ selectedAgent?.name }} 目录中的链接/复制件，不会删除仓库技能。</p>
+        <div class="agent-confirm-foot">
+          <button class="btn" @click="confirmRemove = null">取消</button>
+          <button class="btn danger" @click="removeOne">移除</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
 
 <style scoped>
-.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
-.agent-card { display: flex; align-items: center; gap: 10px; padding: 11px 12px; }
-.agent-card.muted { opacity: .55; }
-.agent-ava { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: #fff; font-size: 9px; font-weight: 700; flex: none; }
-.agent-main { min-width: 0; flex: 1; }
-.agent-name { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 550; }
-.agent-path { margin-top: 3px; color: var(--text-4); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agent-count { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
-.agent-count b { font-size: 14px; font-weight: 600; }
-.agent-count span { color: var(--text-4); font-size: 8.5px; }
+.agent-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 14px; align-items: start; min-height: 360px; }
+.agent-list { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.agent-list-row { display: flex; align-items: flex-start; gap: 7px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 8px; text-align: left; }
+.agent-list-row:hover { background: var(--panel-2); }
+.agent-list-row.active { border-color: var(--border); background: var(--panel); box-shadow: var(--shadow-sm); }
+.agent-list-row.muted { opacity: .55; }
+.agent-list-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.agent-list-main b { font-size: 11px; font-weight: 600; }
+.agent-list-main em { color: var(--text-4); font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-list-main small { color: var(--text-4); font-size: 8.5px; }
+.agent-detail { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); overflow: hidden; }
+.agent-detail-head { display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px 10px; border-bottom: 1px solid var(--border-soft); }
+.agent-detail-head h2 { margin: 0; font-size: 15px; }
+.agent-detail-head span { color: var(--text-4); font-size: 9px; }
+.agent-detail-actions { margin-left: auto; }
+.agent-skill-table { padding: 0 14px 10px; overflow: auto; }
+.as-row { display: grid; grid-template-columns: 20px minmax(200px, 1fr) 62px 86px 50px; gap: 7px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--border-soft); min-width: 0; }
+.as-row:last-child { border-bottom: 0; }
+.as-head { color: var(--text-4); font-size: 9px; border-bottom-style: solid; }
+.as-idx { color: var(--text-4); font-size: 9px; }
+.as-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.as-main b { font-size: 11px; font-weight: 550; }
+.as-main em { color: var(--text-4); font-style: normal; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.as-main small { color: var(--text-4); font-size: 8px; }
+.as-actions { display: flex; justify-content: flex-end; }
+.agent-placeholder { min-height: 300px; }
+.empty-mini { padding: 24px; text-align: center; color: var(--text-4); font-size: 10px; }
 .drift-section { margin-top: 18px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
 .drift-head { display: flex; align-items: flex-start; gap: 10px; }
 .drift-head > .btn { margin-left: auto; flex: none; }
@@ -227,21 +357,21 @@ onMounted(refresh);
 .drift-row { display: flex; align-items: center; gap: 9px; padding: 8px 4px; border-bottom: 1px dashed var(--border-soft); min-width: 0; }
 .drift-row:last-child { border-bottom: 0; }
 .drift-status { flex: none; padding: 2px 6px; border-radius: 4px; font-size: 9px; color: var(--warning); background: var(--warning-soft); }
-.drift-status.missing { color: var(--danger); background: var(--danger-soft); }
-.drift-status.modified { color: var(--danger); background: var(--danger-soft); }
+.drift-status.missing, .drift-status.modified { color: var(--danger); background: var(--danger-soft); }
 .drift-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 10px; }
 .drift-main b { font-size: 11px; font-weight: 550; }
 .drift-main .mono { color: var(--text-4); font-size: 9px; }
 .drift-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agent-confirm { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(20,22,27,.32); backdrop-filter: blur(3px); }
-.agent-confirm-card { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-lg); }
-.agent-confirm-head { display: flex; align-items: flex-start; gap: 10px; padding: 14px; }
-.agent-confirm-head h3 { margin: 0; font-size: 14px; }
-.agent-confirm-head p { margin: 5px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.65; }
-.agent-confirm-head .icon-btn { margin-left: auto; flex: none; }
-.agent-confirm-foot { display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border-soft); }
 .agent-errors { margin-top: 12px; padding: 9px 10px; border: 1px dashed var(--border); border-radius: 8px; color: var(--text-4); font-size: 9.5px; display: flex; flex-direction: column; gap: 3px; }
 .agent-errors b { color: var(--warning); font-weight: 550; }
+.agent-confirm { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(20,22,27,.32); backdrop-filter: blur(3px); }
+.agent-confirm-card { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-lg); padding: 16px; }
+.agent-confirm-head { display: flex; align-items: flex-start; gap: 10px; }
+.agent-confirm-head h3, .agent-confirm-card h3 { margin: 0; font-size: 14px; }
+.agent-confirm-head p, .agent-confirm-card p { margin: 5px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.65; }
+.agent-confirm-head .icon-btn { margin-left: auto; flex: none; }
+.agent-confirm-foot { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
 .spin { animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) { .agent-layout { grid-template-columns: 200px minmax(0, 1fr); } .as-row { grid-template-columns: 16px minmax(130px, 1fr) 55px 75px 45px; } }
 </style>

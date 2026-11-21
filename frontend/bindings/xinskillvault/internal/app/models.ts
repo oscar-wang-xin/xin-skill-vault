@@ -5,6 +5,17 @@
 // @ts-ignore: Unused imports
 import * as vault$0 from "../vault/models.js";
 
+export interface AgentSkillItem {
+    "slug": string;
+    "name": string;
+    "description": string;
+    "version": string;
+    "mode": string;
+    "status": string;
+    "installedPath": string;
+    "managed": boolean;
+}
+
 export interface AppInfo {
     "name": string;
     "version": string;

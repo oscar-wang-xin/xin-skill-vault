@@ -1,5 +1,5 @@
 import * as AppService from "../../bindings/xinskillvault/internal/app/service";
-import type { AppInfo, BundleImportResult, BundleItem, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, TagItem, URLImportResult, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
+import type { AgentSkillItem, AppInfo, BundleImportResult, BundleItem, ComboItem, ComboSkillItem, DistributionTarget, ProjectBulkResult, ProjectItem, ProjectSkill, PromptCategoryItem, PromptDetail, PromptItem, SaveConfigResult, SkillAssignment, SkillDetail, SkillItem, SnapshotItem, TagItem, URLImportResult, VaultSummary } from "../../bindings/xinskillvault/internal/app/models";
 import type { Result as ScanResult } from "../../bindings/xinskillvault/internal/scan/models";
 import type { Report as DriftReport } from "../../bindings/xinskillvault/internal/distribute/models";
 import type { Audit as MarketAudit, Category as MarketCategory, Result as MarketResult, Source as MarketSource } from "../../bindings/xinskillvault/internal/market/models";
@@ -508,6 +508,12 @@ export async function exportDiagnostics(): Promise<string> {
 export async function importSkillURL(url: string, conflict: "skip" | "overwrite"): Promise<URLImportResult> {
   if (!(await hasBackend())) throw new Error("URL 导入需要桌面应用");
   return AppService.ImportSkillURL(url, conflict);
+}
+
+
+export async function listAgentSkills(agentID: string): Promise<AgentSkillItem[]> {
+  if (!(await hasBackend())) return [];
+  return (await AppService.ListAgentSkills(agentID)) ?? [];
 }
 
 export function formatBytes(bytes: number): string {

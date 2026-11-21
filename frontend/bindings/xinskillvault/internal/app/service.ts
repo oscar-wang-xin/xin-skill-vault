@@ -162,6 +162,10 @@ export function InstallMarketSkill(source: string, slug: string, $namespace: str
     return $Call.ByID(3926582246, source, slug, $namespace, force);
 }
 
+export function ListAgentSkills(agentID: string): $CancellablePromise<$models.AgentSkillItem[] | null> {
+    return $Call.ByID(544458993, agentID);
+}
+
 export function ListBundleSkills(id: string): $CancellablePromise<$models.ComboSkillItem[] | null> {
     return $Call.ByID(2416243052, id);
 }
